@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "mcp__daem0nmcp__get_briefing",
-      "Bash(ls:*)",
-      "Bash(grep:*)"
-    ]
-  }
-}
