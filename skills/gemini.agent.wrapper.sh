@@ -35,22 +35,48 @@ USE_CACHE=false
 CACHE_DIR=".gemini/cache"
 OUTPUT_SCHEMA=""
 BATCH_FILE=""
+VERBOSE=false  # Quiet by default for Claude consumption
 
 # Role definitions - Built-in roles
-# These leverage Gemini's 1M token context for comprehensive analysis
+# All roles include structured output instructions for Claude consumption
 declare -A ROLES
-ROLES[reviewer]="You are a senior code reviewer. Focus on: code quality, potential bugs, security vulnerabilities, performance issues, and adherence to best practices. Always provide specific file:line references."
-ROLES[planner]="You are a technical architect. Focus on: system design, file organization, component relationships, and implementation strategies. Provide clear step-by-step plans with file paths."
-ROLES[explainer]="You are a patient technical mentor. Focus on: explaining how code works, tracing data flow, clarifying architecture decisions. Use simple language and provide concrete examples."
-ROLES[debugger]="You are a debugging expert. Focus on: tracing errors through call stacks, identifying root causes, finding related failure points. Provide specific file:line references and fix recommendations."
 
-# Large-context roles - These specifically leverage the 1M token context window
-ROLES[auditor]="You are a codebase auditor with access to the ENTIRE codebase. Leverage your full context to: identify patterns and anti-patterns across ALL files, find code duplication, detect architectural inconsistencies, measure technical debt, and provide a comprehensive health report. Reference specific files and show cross-file relationships."
-ROLES[migrator]="You are a migration specialist who can see the ENTIRE codebase at once. Plan large-scale migrations by: mapping all affected files, identifying breaking changes, suggesting incremental migration paths, and detecting hidden dependencies. Provide a phased migration plan with file-by-file changes."
-ROLES[documenter]="You are a documentation generator with full codebase visibility. Generate comprehensive documentation by: analyzing all public APIs, tracing data flows end-to-end, documenting component relationships, and creating architecture diagrams (mermaid). Output structured markdown documentation."
-ROLES[security]="You are a security auditor with access to the COMPLETE codebase. Perform deep security analysis: trace all data flows for vulnerabilities, find hardcoded secrets across ALL files, identify authentication/authorization gaps, check for injection vulnerabilities, and audit third-party dependencies. Provide severity ratings and file:line references."
-ROLES[dependency-mapper]="You are a dependency analyst with full codebase visibility. Map the complete dependency graph: internal module dependencies, external package usage, circular dependencies, unused imports, and version conflicts. Output dependency diagrams and identify coupling hotspots."
-ROLES[onboarder]="You are an onboarding guide with access to the entire codebase. Help new developers understand: project structure and conventions, key architectural decisions, common patterns used, important files to know, and typical development workflows. Provide a structured onboarding guide with links to relevant code."
+# Standard output format instruction appended to all roles
+ROLE_OUTPUT_FORMAT="
+
+FORMAT YOUR RESPONSE AS:
+## SUMMARY
+[1-2 sentence overview]
+
+## FILES
+[List each relevant file as: path/to/file.ext:LINE - brief description]
+
+## ANALYSIS
+[Your detailed analysis]
+
+## RECOMMENDATIONS
+[Numbered list of actionable items]"
+
+ROLES[reviewer]="You are a senior code reviewer analyzing code for another AI developer. Focus on: code quality, potential bugs, security vulnerabilities, performance issues, and adherence to best practices. Always provide specific file:line references.${ROLE_OUTPUT_FORMAT}"
+
+ROLES[planner]="You are a technical architect providing implementation guidance for another AI developer. Focus on: system design, file organization, component relationships, and implementation strategies. Provide clear step-by-step plans with file paths.${ROLE_OUTPUT_FORMAT}"
+
+ROLES[explainer]="You are a technical expert explaining code to another AI developer. Focus on: how code works, data flow, architecture patterns. Be precise with file:line references.${ROLE_OUTPUT_FORMAT}"
+
+ROLES[debugger]="You are a debugging expert helping another AI developer trace issues. Focus on: error call stacks, root causes, related failure points. Provide specific file:line references and fix recommendations.${ROLE_OUTPUT_FORMAT}"
+
+# Large-context roles
+ROLES[auditor]="You are a codebase auditor with access to the ENTIRE codebase, reporting to another AI developer. Identify patterns/anti-patterns across ALL files, code duplication, architectural inconsistencies, tech debt. Reference specific files and cross-file relationships.${ROLE_OUTPUT_FORMAT}"
+
+ROLES[migrator]="You are a migration specialist who can see the ENTIRE codebase, planning for another AI developer. Map all affected files, breaking changes, incremental migration paths, hidden dependencies. Provide phased plan with file-by-file changes.${ROLE_OUTPUT_FORMAT}"
+
+ROLES[documenter]="You are a documentation generator with full codebase visibility, creating docs for another AI developer. Analyze public APIs, trace data flows, document component relationships. Output structured markdown.${ROLE_OUTPUT_FORMAT}"
+
+ROLES[security]="You are a security auditor with access to the COMPLETE codebase, reporting to another AI developer. Trace data flows for vulnerabilities, find hardcoded secrets, identify auth gaps, check injection vulnerabilities. Provide severity ratings (CRITICAL/HIGH/MEDIUM/LOW) and file:line references.${ROLE_OUTPUT_FORMAT}"
+
+ROLES[dependency-mapper]="You are a dependency analyst with full codebase visibility, reporting to another AI developer. Map complete dependency graph: internal modules, external packages, circular dependencies, unused imports. Output structured dependency information.${ROLE_OUTPUT_FORMAT}"
+
+ROLES[onboarder]="You are an onboarding guide with access to the entire codebase, briefing another AI developer. Explain: project structure, key architectural decisions, common patterns, important files. Provide structured overview.${ROLE_OUTPUT_FORMAT}"
 
 # Template definitions
 get_template() {
@@ -185,6 +211,7 @@ ${BLUE}OPTIONS:${NC}
     --clear-cache          Clear all cached responses
     --schema SCHEMA        Request structured output: files, issues, plan, json
     --batch FILE           Process multiple queries from file (one per line)
+    --verbose              Show status messages (quiet by default for AI consumption)
     --dry-run              Show constructed prompt without executing
     -h, --help             Display this help message
 
@@ -307,6 +334,10 @@ while [[ $# -gt 0 ]]; do
         --batch)
             BATCH_FILE="$2"
             shift 2
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            shift
             ;;
         -h|--help)
             usage
@@ -545,18 +576,20 @@ fi
 # 7. Add user prompt
 FULL_PROMPT="${FULL_PROMPT}${PROMPT}"
 
-# Display info
-echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║   Gemini CLI - The Eyes (Enhanced Context Manager)    ║${NC}"
-echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "${BLUE}Directories:${NC} ${DIRECTORIES:-[all]}"
-echo -e "${BLUE}Model:${NC} $MODEL $([ "$USE_FALLBACK" = true ] && echo "(fallback: $FALLBACK_MODEL)" || echo "(no fallback)")"
-echo -e "${BLUE}Role:${NC} ${ROLE:-[none]}"
-echo -e "${BLUE}Template:${NC} ${TEMPLATE:-[none]}"
-echo -e "${BLUE}Output Format:${NC} $OUTPUT_FORMAT"
-echo -e "${BLUE}Context Loaded:${NC} $([ -n "$CONTEXT" ] && echo 'Yes' || echo 'No')"
-echo ""
+# Display info (only in verbose mode)
+if [ "$VERBOSE" = true ]; then
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║   Gemini CLI - The Eyes (Enhanced Context Manager)    ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${BLUE}Directories:${NC} ${DIRECTORIES:-[all]}"
+    echo -e "${BLUE}Model:${NC} $MODEL $([ "$USE_FALLBACK" = true ] && echo "(fallback: $FALLBACK_MODEL)" || echo "(no fallback)")"
+    echo -e "${BLUE}Role:${NC} ${ROLE:-[none]}"
+    echo -e "${BLUE}Template:${NC} ${TEMPLATE:-[none]}"
+    echo -e "${BLUE}Output Format:${NC} $OUTPUT_FORMAT"
+    echo -e "${BLUE}Context Loaded:${NC} $([ -n "$CONTEXT" ] && echo 'Yes' || echo 'No')"
+    echo ""
+fi
 
 if [ "$DRY_RUN" = true ]; then
     echo -e "${YELLOW}═══ DRY RUN - Full Prompt ═══${NC}"
@@ -569,8 +602,8 @@ if [ "$DRY_RUN" = true ]; then
     exit 0
 fi
 
-echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
-echo ""
+[ "$VERBOSE" = true ] && echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
+[ "$VERBOSE" = true ] && echo ""
 
 # Generate cache key from prompt hash
 CACHE_KEY=""
@@ -592,13 +625,11 @@ if [ "$USE_CACHE" = true ]; then
     
     # Check if cached response exists
     if [ -f "$CACHE_FILE" ]; then
-        echo -e "${CYAN}📦 Using cached response (hash: ${CACHE_KEY:0:8}...)${NC}"
-        echo ""
+        [ "$VERBOSE" = true ] && echo -e "${CYAN}📦 Using cached response (hash: ${CACHE_KEY:0:8}...)${NC}"
         cat "$CACHE_FILE"
-        echo ""
-        echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
-        echo -e "${GREEN}✓ Gemini analysis complete (from cache)${NC}"
-        echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
+        [ "$VERBOSE" = true ] && echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
+        [ "$VERBOSE" = true ] && echo -e "${GREEN}✓ Gemini analysis complete (from cache)${NC}"
+        [ "$VERBOSE" = true ] && echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
         exit 0
     fi
 fi
@@ -618,9 +649,7 @@ fi
 
 # If primary model failed and fallback is enabled, try fallback model
 if [ $EXIT_CODE -ne 0 ] && [ "$USE_FALLBACK" = true ] && [ "$MODEL" = "$PRIMARY_MODEL" ]; then
-    echo ""
-    echo -e "${YELLOW}⚠ Primary model ($MODEL) failed. Trying fallback model ($FALLBACK_MODEL)...${NC}"
-    echo ""
+    [ "$VERBOSE" = true ] && echo -e "${YELLOW}⚠ Primary model ($MODEL) failed. Trying fallback model ($FALLBACK_MODEL)...${NC}" >&2
     CMD="$BASE_CMD -m $FALLBACK_MODEL"
     
     if [ "$USE_CACHE" = true ]; then
@@ -632,25 +661,24 @@ if [ $EXIT_CODE -ne 0 ] && [ "$USE_FALLBACK" = true ] && [ "$MODEL" = "$PRIMARY_
         EXIT_CODE=$?
     fi
     
-    if [ $EXIT_CODE -eq 0 ]; then
-        echo ""
-        echo -e "${CYAN}ℹ Response generated using fallback model: $FALLBACK_MODEL${NC}"
-    fi
+    [ "$VERBOSE" = true ] && [ $EXIT_CODE -eq 0 ] && echo -e "${CYAN}ℹ Response generated using fallback model: $FALLBACK_MODEL${NC}" >&2
 fi
 
 # Save to cache if successful
 if [ "$USE_CACHE" = true ] && [ $EXIT_CODE -eq 0 ] && [ -n "$CACHE_FILE" ]; then
     echo "$RESPONSE" > "$CACHE_FILE"
-    echo -e "${CYAN}💾 Response cached (hash: ${CACHE_KEY:0:8}...)${NC}"
+    [ "$VERBOSE" = true ] && echo -e "${CYAN}💾 Response cached (hash: ${CACHE_KEY:0:8}...)${NC}" >&2
 fi
 
-echo ""
-echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
-if [ $EXIT_CODE -eq 0 ]; then
-    echo -e "${GREEN}✓ Gemini analysis complete${NC}"
-else
-    echo -e "${RED}✗ Gemini analysis failed (exit code: $EXIT_CODE)${NC}"
+if [ "$VERBOSE" = true ]; then
+    echo ""
+    echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
+    if [ $EXIT_CODE -eq 0 ]; then
+        echo -e "${GREEN}✓ Gemini analysis complete${NC}"
+    else
+        echo -e "${RED}✗ Gemini analysis failed (exit code: $EXIT_CODE)${NC}"
+    fi
+    echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
 fi
-echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
 
 exit $EXIT_CODE
