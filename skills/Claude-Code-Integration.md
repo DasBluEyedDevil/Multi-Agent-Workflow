@@ -83,7 +83,84 @@ After implementation, verify your changes:
 
 ## Query Pattern Templates
 
-### Template 1: Feature Understanding
+### Using Roles
+
+The wrapper now supports predefined roles that inject specialized system prompts:
+
+```bash
+# Code review with security focus
+./skills/gemini.agent.wrapper.sh -d "@src/" -r reviewer "Review the authentication module"
+
+# Architecture planning
+./skills/gemini.agent.wrapper.sh -d "@src/" -r planner "Design a caching layer"
+
+# Code explanation for onboarding
+./skills/gemini.agent.wrapper.sh -d "@src/" -r explainer "How does the payment flow work?"
+
+# Bug tracing
+./skills/gemini.agent.wrapper.sh -d "@src/" -r debugger "Error at auth.ts:145"
+```
+
+**Available Roles**:
+| Role | Focus |
+|------|-------|
+| `reviewer` | Code quality, bugs, security, performance |
+| `planner` | Architecture, implementation strategies |
+| `explainer` | Code explanation, mentoring |
+| `debugger` | Error tracing, root cause analysis |
+
+### Using Templates
+
+Templates provide structured query formats for common tasks:
+
+```bash
+# New feature analysis
+./skills/gemini.agent.wrapper.sh -d "@src/" -t feature "Add user profile editing"
+
+# Bug investigation
+./skills/gemini.agent.wrapper.sh -d "@src/" -t bug "Login fails with 401 on mobile"
+
+# Post-implementation verification
+./skills/gemini.agent.wrapper.sh -d "@src/" -t verify "Added password reset in auth/reset.ts"
+
+# Architecture overview
+./skills/gemini.agent.wrapper.sh -d "@src/" -t architecture "Authentication system"
+```
+
+**Available Templates**:
+| Template | Use Case |
+|----------|----------|
+| `feature` | Pre-implementation analysis |
+| `bug` | Bug investigation and tracing |
+| `verify` | Post-implementation verification |
+| `architecture` | System architecture overview |
+
+### Context Injection with GEMINI.md
+
+Place a `GEMINI.md` file in your project root or `.gemini/` directory to auto-inject context:
+
+```markdown
+# Gemini Context File
+
+## Your Role
+You are the Lead Architect for this project...
+
+## Project Constraints
+- Use TypeScript strict mode
+- Follow existing naming conventions
+```
+
+This context is prepended to every query, ensuring consistent project knowledge.
+
+### Dry Run Mode
+
+Test your prompts without executing:
+
+```bash
+./skills/gemini.agent.wrapper.sh --dry-run -d "@src/" -r reviewer -t verify "Test prompt"
+```
+
+This shows the fully constructed prompt including context, role, and template.
 
 ```bash
 ./skills/gemini.agent.wrapper.sh -d "@app/src/" "
