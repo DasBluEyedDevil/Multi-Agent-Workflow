@@ -4,18 +4,18 @@ This document provides concrete examples of using Gemini as a large-context comp
 
 ## Example 1: Understanding a Complex Codebase
 
-**Scenario**: You've inherited an Android app and need to understand how BLE connection management works.
+**Scenario**: You've inherited an app and need to understand how authentication works.
 
 ### Step 1: Query Gemini
 
 ```bash
-./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/com/app/ble/" "
-How is BLE connection management implemented?
+./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/com/app/auth/" "
+How is authentication implemented?
 
 Show me:
 1. Main classes and their responsibilities
-2. Connection state flow (disconnected → connected)
-3. How reconnection is handled
+2. Login state flow (logged out → authenticated)
+3. How token refresh is handled
 4. Error handling patterns
 5. Key files with line numbers
 "
@@ -24,54 +24,54 @@ Show me:
 ### Gemini's Response
 
 ```
-BLE Connection Management Analysis:
+Authentication Analysis:
 
 1. Main Classes:
-   - BleConnectionManager.kt (lines 1-350): Core connection logic
-   - BleState.kt (lines 1-45): State sealed class
-   - ConnectionViewModel.kt (lines 1-200): UI state management
+   - AuthManager.kt (lines 1-350): Core authentication logic
+   - AuthState.kt (lines 1-45): State sealed class
+   - LoginViewModel.kt (lines 1-200): UI state management
 
-2. Connection State Flow:
-   - Disconnected → Connecting → Connected
-   - Implemented in BleConnectionManager.kt:145-180
+2. Login State Flow:
+   - LoggedOut → Authenticating → Authenticated
+   - Implemented in AuthManager.kt:145-180
    - Uses StateFlow for reactive updates
 
-3. Reconnection:
-   - Exponential backoff: BleConnectionManager.kt:220-250
-   - Max 5 attempts with delays: 1s, 2s, 4s, 8s, 16s
-   - Cancels on manual disconnect
+3. Token Refresh:
+   - Automatic refresh: AuthManager.kt:220-250
+   - Retry with exponential backoff
+   - Clears session on persistent failure
 
 4. Error Handling:
-   - BluetoothGatt callbacks: BleConnectionManager.kt:280-330
-   - Timeout handling: 30 second connection timeout
-   - Resource cleanup in onCleared()
+   - Network errors: AuthManager.kt:280-330
+   - Timeout handling: 30 second request timeout
+   - Session cleanup in onCleared()
 
 5. Key Files:
-   - BleConnectionManager.kt: Primary connection logic
-   - BleRepository.kt: Data layer abstraction
-   - BleService.kt: Foreground service for background connections
+   - AuthManager.kt: Primary authentication logic
+   - AuthRepository.kt: Data layer abstraction
+   - TokenStorage.kt: Secure token persistence
 ```
 
 ### Step 2: Claude Code Implements Enhancement
 
-Based on Gemini's analysis, you now know exactly where to add a "connection quality indicator" feature. Claude implements:
+Based on Gemini's analysis, you now know exactly where to add a "session timeout" feature. Claude implements:
 
-- Modify `BleState.kt` to add `connectionQuality: Int`
-- Update `BleConnectionManager.kt:145-180` to calculate quality
-- Update `ConnectionViewModel.kt` to expose quality to UI
+- Modify `AuthState.kt` to add `lastActivityTime: Long`
+- Update `AuthManager.kt:145-180` to track activity
+- Update `LoginViewModel.kt` to handle timeout UI
 
 ### Step 3: Verify with Gemini
 
 ```bash
-./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/com/app/ble/" "
+./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/com/app/auth/" "
 Changes made:
-- BleState.kt: Added connectionQuality field
-- BleConnectionManager.kt:195: Added quality calculation
-- ConnectionViewModel.kt:120: Exposed quality to UI
+- AuthState.kt: Added lastActivityTime field
+- AuthManager.kt:195: Added activity tracking
+- LoginViewModel.kt:120: Added timeout handling
 
 Verify:
 1. Follows existing state management patterns
-2. No regressions in connection flow
+2. No regressions in auth flow
 3. Proper StateFlow updates
 "
 ```
@@ -82,19 +82,19 @@ Verify:
 
 ## Example 2: Bug Tracing Across Multiple Files
 
-**Scenario**: Users report that the app crashes when disconnecting from BLE device during an active workout.
+**Scenario**: Users report that the app crashes when logging out during an active session.
 
 ### Step 1: Query Gemini to Trace the Bug
 
 ```bash
 ./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/" "
-Bug: App crashes when disconnecting BLE during active workout
-Error: NullPointerException in WorkoutManager.kt:245
-Stack trace shows calls from: BleConnectionManager → WorkoutRepository → WorkoutManager
+Bug: App crashes when logging out during active session
+Error: NullPointerException in SessionManager.kt:245
+Stack trace shows calls from: AuthManager → SessionRepository → SessionManager
 
 Trace:
-1. What triggers the disconnect?
-2. How does it propagate to WorkoutManager?
+1. What triggers the logout?
+2. How does it propagate to SessionManager?
 3. What is null at line 245?
 4. Why isn't it null-safe?
 5. Show the complete call chain with file:line numbers
@@ -106,60 +106,60 @@ Trace:
 ```
 Bug Trace Analysis:
 
-1. Disconnect Trigger:
-   - BleConnectionManager.kt:320: onConnectionStateChange callback
-   - Emits Disconnected state via StateFlow
+1. Logout Trigger:
+   - AuthManager.kt:320: onLogoutRequested callback
+   - Emits LoggedOut state via StateFlow
 
 2. Propagation Chain:
-   - BleConnectionManager.kt:320 → StateFlow update
-   - BleRepository.kt:85: Observes state, calls stopWorkout()
-   - WorkoutRepository.kt:140: stopWorkout() calls WorkoutManager.endWorkout()
-   - WorkoutManager.kt:245: CRASHES HERE
+   - AuthManager.kt:320 → StateFlow update
+   - AuthRepository.kt:85: Observes state, calls clearSession()
+   - SessionRepository.kt:140: clearSession() calls SessionManager.endSession()
+   - SessionManager.kt:245: CRASHES HERE
 
 3. Null Value:
-   - WorkoutManager.kt:245: `activeWorkout?.bleData.recordFinalSample()`
-   - `activeWorkout` is non-null BUT `bleData` is null
-   - bleData is initialized in startWorkout() from BLE connection
-   - When BLE disconnects, bleData is set to null (line 180)
-   - BUT endWorkout() assumes bleData exists
+   - SessionManager.kt:245: `activeSession?.userData.saveMetrics()`
+   - `activeSession` is non-null BUT `userData` is null
+   - userData is initialized in startSession() from auth response
+   - When logout starts, userData is set to null (line 180)
+   - BUT endSession() assumes userData exists
 
 4. Root Cause:
-   - Race condition: BLE disconnect sets bleData=null before endWorkout() runs
+   - Race condition: Logout sets userData=null before endSession() runs
    - No null check at line 245
 
 5. Call Chain:
-   BleConnectionManager.kt:320 (onConnectionStateChange)
+   AuthManager.kt:320 (onLogoutRequested)
      ↓
-   BleRepository.kt:85 (observeConnectionState)
+   AuthRepository.kt:85 (observeAuthState)
      ↓
-   WorkoutRepository.kt:140 (stopWorkout)
+   SessionRepository.kt:140 (clearSession)
      ↓
-   WorkoutManager.kt:245 (endWorkout — CRASH)
+   SessionManager.kt:245 (endSession — CRASH)
 
 Recommended Fix:
-Add null-safe check: `activeWorkout?.bleData?.recordFinalSample()` (line 245)
+Add null-safe check: `activeSession?.userData?.saveMetrics()` (line 245)
 ```
 
 ### Step 2: Claude Code Fixes the Bug
 
 ```kotlin
-// WorkoutManager.kt:245 - Changed from:
-activeWorkout?.bleData.recordFinalSample()
+// SessionManager.kt:245 - Changed from:
+activeSession?.userData.saveMetrics()
 
 // To:
-activeWorkout?.bleData?.recordFinalSample()
+activeSession?.userData?.saveMetrics()
 ```
 
 ### Step 3: Verify Fix with Gemini
 
 ```bash
 ./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/" "
-Fix applied: Made bleData?.recordFinalSample() null-safe at WorkoutManager.kt:245
+Fix applied: Made userData?.saveMetrics() null-safe at SessionManager.kt:245
 
 Verify:
-1. Are there other places where bleData is accessed without null checks?
-2. Should bleData be nullable in the first place?
-3. Any other race conditions in the disconnect flow?
+1. Are there other places where userData is accessed without null checks?
+2. Should userData be nullable in the first place?
+3. Any other race conditions in the logout flow?
 "
 ```
 
@@ -168,23 +168,19 @@ Verify:
 Verification:
 
 1. Other unsafe accesses:
-   - WorkoutManager.kt:260: bleData.finalMetrics — NEEDS FIX
-   - WorkoutManager.kt:280: bleData.duration — NEEDS FIX
+   - SessionManager.kt:260: userData.finalMetrics — NEEDS FIX
+   - SessionManager.kt:280: userData.duration — NEEDS FIX
 
 2. Design consideration:
-   - bleData should remain nullable (represents optional BLE connection)
+   - userData should remain nullable (represents optional session data)
    - Current design is correct
 
 3. Other race conditions:
-   - None found in disconnect flow
+   - None found in logout flow
    - All other accesses properly null-safe
 
 Recommendation: Fix lines 260 and 280 with same pattern.
 ```
-
-### Step 4: Claude Code Applies Additional Fixes
-
-Updates lines 260 and 280 to be null-safe.
 
 **Result**: Bug fixed comprehensively, no regressions, all related issues caught.
 
@@ -192,16 +188,16 @@ Updates lines 260 and 280 to be null-safe.
 
 ## Example 3: Implementing a New Feature
 
-**Scenario**: Add workout history export as CSV.
+**Scenario**: Add user data export as CSV.
 
 ### Step 1: Analyze Existing Patterns
 
 ```bash
 ./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/" "
-I need to implement workout history export to CSV.
+I need to implement user data export to CSV.
 
 Analyze:
-1. How is workout data currently stored? (database schema)
+1. How is user data currently stored? (database schema)
 2. Are there existing export or file-writing patterns?
 3. Where should the export button go in the UI?
 4. How do other features handle file permissions?
@@ -212,12 +208,12 @@ Analyze:
 ### Gemini's Response
 
 ```
-Workout Export Analysis:
+User Export Analysis:
 
 1. Data Storage:
-   - Room database: WorkoutEntity (data/local/WorkoutEntity.kt:1-30)
-   - Fields: id, userId, date, exerciseType, repCount, weight, duration
-   - DAO: WorkoutDao.kt with getAll() and getByDateRange() queries
+   - Room database: UserEntity (data/local/UserEntity.kt:1-30)
+   - Fields: id, name, email, createdAt, preferences
+   - DAO: UserDao.kt with getAll() and getByDateRange() queries
 
 2. Existing File Patterns:
    - ProfileExport.kt:45-80: Exports user profile as JSON
@@ -225,7 +221,7 @@ Workout Export Analysis:
    - Saves to external storage: /Documents/AppName/
 
 3. UI Location:
-   - HistoryScreen.kt:120: TopAppBar has "..." menu
+   - SettingsScreen.kt:120: Has "Export" section
    - Other screens add export to overflow menu
    - Follow pattern in ProfileScreen.kt:200-220
 
@@ -234,28 +230,26 @@ Workout Export Analysis:
    - Uses ActivityCompat.requestPermissions()
    - Includes fallback to internal storage on permission denial
 
-5. CSV Format (based on WorkoutEntity):
-   Date,Exercise,Reps,Weight (lbs),Duration (sec)
-   2024-01-15,Chest Press,10,150,45
-   2024-01-15,Squats,12,200,60
+5. CSV Format (based on UserEntity):
+   Name,Email,Created,Preferences
+   John Doe,john@example.com,2024-01-15,dark_mode
 ```
 
 ### Step 2: Claude Code Implements
 
 Based on Gemini's analysis:
-
-1. Create `WorkoutExport.kt` following `ProfileExport.kt` pattern
-2. Add export menu item to `HistoryScreen.kt:120`
+1. Create `UserExport.kt` following `ProfileExport.kt` pattern
+2. Add export menu item to `SettingsScreen.kt:120`
 3. Request permissions using same approach
-4. Generate CSV with schema: Date, Exercise, Reps, Weight, Duration
+4. Generate CSV with schema: Name, Email, Created, Preferences
 
 ### Step 3: Verify Implementation
 
 ```bash
 ./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/" "
-Implemented workout CSV export:
-- WorkoutExport.kt: New class with exportToCsv() method
-- HistoryScreen.kt:125: Added 'Export CSV' menu item
+Implemented user CSV export:
+- UserExport.kt: New class with exportToCsv() method
+- SettingsScreen.kt:125: Added 'Export Data' menu item
 - Uses same permission pattern as ProfileExport.kt
 
 Verify:
@@ -265,24 +259,6 @@ Verify:
 4. No resource leaks (FileWriter properly closed)
 "
 ```
-
-**Gemini's Response**:
-```
-Verification:
-
-1. ✅ Follows ProfileExport.kt pattern correctly
-2. ✅ Permission handling matches existing approach
-3. ✅ CSV format is clear and matches data schema
-4. ⚠️  ISSUE: WorkoutExport.kt:65 - FileWriter not in try-with-resources
-   - Should use: `FileWriter(...).use { writer -> ... }`
-   - Current code risks file handle leak on exception
-
-Recommendation: Wrap FileWriter in .use {} block for automatic closing.
-```
-
-### Step 4: Claude Code Fixes Issue
-
-Update `WorkoutExport.kt:65` to use `.use {}` block.
 
 **Result**: Feature implemented following best practices, caught resource leak before it shipped.
 
@@ -361,13 +337,13 @@ HIGH PRIORITY:
 
 ## Example 5: Refactoring Planning
 
-**Scenario**: Codebase has grown; need to refactor BLE module.
+**Scenario**: Codebase has grown; need to refactor the API module.
 
 ### Step 1: Analyze Current Architecture
 
 ```bash
-./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/com/app/ble/" "
-Analyze BLE module for refactoring.
+./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/com/app/api/" "
+Analyze API module for refactoring.
 
 Identify:
 1. Code duplication
@@ -386,30 +362,30 @@ Show file:line for specific issues.
 Refactoring Analysis:
 
 1. Code Duplication:
-   - BleConnectionManager.kt:100-130 & BleService.kt:80-110
-   - Same connection retry logic duplicated
-   - Extract to BleRetryStrategy class
+   - ApiClient.kt:100-130 & NetworkService.kt:80-110
+   - Same retry logic duplicated
+   - Extract to RetryStrategy class
 
 2. God Class:
-   - BleConnectionManager.kt (450 lines)
-   - Responsibilities: connection, characteristic reading, error handling, state management
-   - SPLIT INTO: BleConnection, BleCharacteristicReader, BleErrorHandler
+   - ApiClient.kt (450 lines)
+   - Responsibilities: requests, caching, error handling, logging
+   - SPLIT INTO: ApiRequester, CacheManager, ErrorHandler
 
 3. Tight Coupling:
-   - BleRepository.kt:40 directly instantiates BleConnectionManager
+   - Repository.kt:40 directly instantiates ApiClient
    - Hard to test, no dependency injection
    - Use constructor injection
 
 4. Missing Abstraction:
-   - Multiple files parse characteristic bytes: lines 120, 200, 340
-   - No shared CharacteristicParser interface
-   - Create BleCharacteristicParser with implementations
+   - Multiple files parse JSON responses: lines 120, 200, 340
+   - No shared ResponseParser interface
+   - Create ResponseParser with implementations
 
 5. Suggested Refactoring:
-   Phase 1: Extract BleRetryStrategy (low risk)
-   Phase 2: Add BleConnectionManager interface for DI
+   Phase 1: Extract RetryStrategy (low risk)
+   Phase 2: Add ApiClient interface for DI
    Phase 3: Split into smaller classes (high effort)
-   Phase 4: Create CharacteristicParser abstraction
+   Phase 4: Create ResponseParser abstraction
 
 Recommended order: Low risk → High value
 Start with Phase 1 and Phase 4 (quick wins).
@@ -417,16 +393,16 @@ Start with Phase 1 and Phase 4 (quick wins).
 
 ### Step 2: Claude Code Implements Phase 1
 
-Creates `BleRetryStrategy` class and refactors duplicate code.
+Creates `RetryStrategy` class and refactors duplicate code.
 
 ### Step 3: Verify with Gemini
 
 ```bash
-./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/com/app/ble/" "
+./skills/gemini.agent.wrapper.sh -d "@app/src/main/java/com/app/api/" "
 Refactoring Phase 1 complete:
-- Created BleRetryStrategy.kt
-- Removed duplication from BleConnectionManager.kt:100-130
-- Removed duplication from BleService.kt:80-110
+- Created RetryStrategy.kt
+- Removed duplication from ApiClient.kt:100-130
+- Removed duplication from NetworkService.kt:80-110
 
 Verify:
 1. No functionality changed (behavior preserved)

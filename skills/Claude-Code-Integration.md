@@ -108,6 +108,13 @@ The wrapper now supports predefined roles that inject specialized system prompts
 | `planner` | Architecture, implementation strategies |
 | `explainer` | Code explanation, mentoring |
 | `debugger` | Error tracing, root cause analysis |
+| **Large-Context Roles** (leverage 1M tokens) | |
+| `auditor` | Codebase-wide patterns, tech debt, health report |
+| `migrator` | Large-scale migration planning |
+| `documenter` | Comprehensive documentation generation |
+| `security` | Deep security audit across all files |
+| `dependency-mapper` | Dependency graph and coupling analysis |
+| `onboarder` | New developer onboarding guide |
 
 ### Using Templates
 
@@ -151,6 +158,83 @@ You are the Lead Architect for this project...
 ```
 
 This context is prepended to every query, ensuring consistent project knowledge.
+
+### Custom Roles and Templates
+
+Create project-specific roles and templates in the `.gemini/` directory:
+
+```
+.gemini/
+├── roles/
+│   └── kotlin-expert.md    # Custom role definition
+└── templates/
+    └── security-audit.md   # Custom query template
+```
+
+Use custom roles/templates the same as built-in ones:
+```bash
+./skills/gemini.agent.wrapper.sh -r kotlin-expert "Review this coroutine code"
+./skills/gemini.agent.wrapper.sh -t security-audit "Audit the auth module"
+```
+
+### Advanced Features
+
+#### Git Diff Injection (`--diff`)
+
+Include staged changes or compare against a branch:
+
+```bash
+# Include current staged changes
+./skills/gemini.agent.wrapper.sh --diff -d "@src/" "Verify these changes"
+
+# Compare against main branch
+./skills/gemini.agent.wrapper.sh --diff main -d "@src/" "Review my feature branch changes"
+```
+
+#### Response Caching (`--cache`)
+
+Cache responses for repeated queries (saves API calls):
+
+```bash
+# First query hits API and caches
+./skills/gemini.agent.wrapper.sh --cache -d "@src/" "How is auth implemented?"
+
+# Repeated query uses cache instantly
+./skills/gemini.agent.wrapper.sh --cache -d "@src/" "How is auth implemented?"
+
+# Clear cache when needed
+./skills/gemini.agent.wrapper.sh --clear-cache
+```
+
+#### Structured Output (`--schema`)
+
+Get machine-readable JSON responses:
+
+```bash
+# Get files as JSON array
+./skills/gemini.agent.wrapper.sh --schema files -d "@src/" "Which files handle auth?"
+
+# Get issues as JSON array with severity
+./skills/gemini.agent.wrapper.sh --schema issues -d "@src/" "Security audit"
+
+# Get implementation plan as structured JSON
+./skills/gemini.agent.wrapper.sh --schema plan -d "@src/" "Add user export feature"
+```
+
+Available schemas: `files`, `issues`, `plan`, `json`
+
+#### Batch Processing (`--batch`)
+
+Process multiple queries from a file:
+
+```bash
+# queries.txt (one query per line, # for comments)
+# How is authentication implemented?
+# What files handle user data?
+# Security audit of the API layer
+
+./skills/gemini.agent.wrapper.sh --batch queries.txt -d "@src/"
+```
 
 ### Dry Run Mode
 

@@ -56,7 +56,7 @@ chmod +x skills/gemini.agent.wrapper.sh
 
 **Understand a feature**:
 ```bash
-./skills/gemini.agent.wrapper.sh -d "@app/" "Explain how workout data flows from BLE device to UI. Show the complete data pipeline."
+./skills/gemini.agent.wrapper.sh -d "@app/" "Explain how user authentication flows from login UI to API. Show the complete data pipeline."
 ```
 
 ## Workflow: Claude Code + Gemini
@@ -96,14 +96,17 @@ chmod +x skills/gemini.agent.wrapper.sh
 
 ```
 ./
-├── .archive/                  # Archived engineering subagents
-├── README.md                  # This file
-├── CLAUDE.md                  # Quick reference for Claude Code
-├── EXAMPLES.md                # Real-world workflow examples
+├── .gemini/                       # Custom roles and templates
+│   ├── roles/                     # Custom role definitions
+│   └── templates/                 # Custom query templates
+├── README.md                      # This file
+├── CLAUDE.md                      # Quick reference for Claude Code
+├── EXAMPLES.md                    # Real-world workflow examples
+├── GEMINI.md                      # Gemini context file
 └── skills/
-    ├── Gemini-Researcher.md       # Analysis query patterns
-    ├── gemini.agent.wrapper.sh    # Gemini CLI wrapper
-    └── Claude-Code-Integration.md # Integration guide
+    ├── gemini.agent.wrapper.sh    # Gemini CLI wrapper (main tool)
+    ├── Claude-Code-Integration.md # Integration guide
+    └── pre-commit.hook            # Git pre-commit verification
 ```
 
 ## Gemini Wrapper Reference
@@ -112,11 +115,16 @@ chmod +x skills/gemini.agent.wrapper.sh
 ./skills/gemini.agent.wrapper.sh [OPTIONS] "<prompt>"
 
 Options:
-  -d, --dir DIRS      Directories to include (e.g., "@src/ @lib/")
-  -a, --all-files     Include all files
-  -c, --checkpoint    Enable checkpointing
-  -s, --sandbox       Sandbox mode
-  -o, --output FORMAT Output format (text, json)
+  -d, --dir DIRS        Directories to include (e.g., "@src/ @lib/")
+  -a, --all-files       Include all files
+  -r, --role ROLE       Use predefined role (reviewer, planner, security, etc.)
+  -t, --template TMPL   Use query template (feature, bug, verify, architecture)
+  -m, --model MODEL     Specify model (default: gemini-3-pro-preview)
+  --diff [TARGET]       Include git diff in prompt
+  --cache               Cache response for repeated queries
+  --schema SCHEMA       Structured output (files, issues, plan, json)
+  --batch FILE          Process multiple queries from file
+  --dry-run             Show prompt without executing
 ```
 
 ### Important: Handling Large Codebases
@@ -185,12 +193,12 @@ Verify:
 
 ## Token Savings Examples
 
-### Example 1: Understanding BLE Implementation
+### Example 1: Understanding API Layer
 
 **❌ Old Way (Claude reads directly)**:
-- Claude reads BleManager.kt (2k tokens)
-- Claude reads BleService.kt (3k tokens)
-- Claude reads BleRepository.kt (1.5k tokens)
+- Claude reads ApiClient.kt (2k tokens)
+- Claude reads AuthService.kt (3k tokens)
+- Claude reads UserRepository.kt (1.5k tokens)
 - **Total: 6.5k tokens**
 
 **✅ New Way (Gemini analyzes)**:

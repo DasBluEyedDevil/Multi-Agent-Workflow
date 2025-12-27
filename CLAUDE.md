@@ -41,22 +41,20 @@ After implementation, verify consistency:
 
 ```bash
 # Understand a feature
-./skills/gemini.agent.wrapper.sh -d "@app/src/" "How is [feature] implemented?"
+./skills/gemini.agent.wrapper.sh -d "@src/" "How is [feature] implemented?"
+
+# Use specialized roles
+./skills/gemini.agent.wrapper.sh -r security -d "@src/" "Security audit"
+./skills/gemini.agent.wrapper.sh -r auditor -d "@src/" "Codebase health report"
 
 # Trace a bug
-./skills/gemini.agent.wrapper.sh -d "@app/src/" "Bug at [file:line]. Trace root cause."
+./skills/gemini.agent.wrapper.sh -d "@src/" "Bug at [file:line]. Trace root cause."
 
-# Find relevant files
-./skills/gemini.agent.wrapper.sh -d "@app/src/" "Which files handle [functionality]?"
+# Include git diff for verification
+./skills/gemini.agent.wrapper.sh --diff -d "@src/" "Verify these changes"
 
-# Architecture overview
-./skills/gemini.agent.wrapper.sh -d "@app/src/" "Explain [system] architecture with file organization."
-
-# Review code quality
-./skills/gemini.agent.wrapper.sh -d "@app/src/" "Review [files] for security and best practices."
-
-# Verify changes
-./skills/gemini.agent.wrapper.sh -d "@app/src/" "Changes: [summary]. Verify consistency."
+# Get structured JSON output
+./skills/gemini.agent.wrapper.sh --schema issues -d "@src/" "Find problems"
 ```
 
 ## When to Use Gemini
@@ -79,15 +77,15 @@ After implementation, verify consistency:
 
 ### Be Specific
 ❌ "How does this work?"  
-✅ "How is BLE connection state managed? Show state flow with file paths and line numbers."
+✅ "How is user authentication managed? Show state flow with file paths and line numbers."
 
 ### Request Structured Output
 ❌ "Review this code"  
-✅ "Review for: 1) Kotlin best practices, 2) coroutine safety, 3) memory leaks. Provide file:line references."
+✅ "Review for: 1) Security issues, 2) error handling, 3) memory leaks. Provide file:line references."
 
 ### Include Context
 ❌ "Find the bug"  
-✅ "Bug: Crash at BleManager.kt:145 when disconnecting. Trace the disconnect flow through all files."
+✅ "Bug: Crash at AuthManager.kt:145 when logging out. Trace the logout flow through all files."
 
 ## Token Savings
 
@@ -122,6 +120,5 @@ chmod +x skills/gemini.agent.wrapper.sh
 ## More Information
 
 - Full documentation: [`README.md`](README.md)
-- Query patterns: [`skills/Gemini-Researcher.md`](skills/Gemini-Researcher.md)
 - Integration guide: [`skills/Claude-Code-Integration.md`](skills/Claude-Code-Integration.md)
 - Examples: [`EXAMPLES.md`](EXAMPLES.md)

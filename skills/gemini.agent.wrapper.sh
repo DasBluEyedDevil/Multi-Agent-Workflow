@@ -14,6 +14,10 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Model configuration
+PRIMARY_MODEL="gemini-3-pro-preview"
+FALLBACK_MODEL="gemini-3-flash-preview"
+
 # Default settings
 OUTPUT_FORMAT="text"
 USE_CHECKPOINT=false
@@ -23,13 +27,30 @@ DIRECTORIES=""
 ROLE=""
 TEMPLATE=""
 DRY_RUN=false
+MODEL="$PRIMARY_MODEL"
+USE_FALLBACK=true
+INCLUDE_DIFF=false
+DIFF_TARGET="HEAD"
+USE_CACHE=false
+CACHE_DIR=".gemini/cache"
+OUTPUT_SCHEMA=""
+BATCH_FILE=""
 
-# Role definitions
+# Role definitions - Built-in roles
+# These leverage Gemini's 1M token context for comprehensive analysis
 declare -A ROLES
 ROLES[reviewer]="You are a senior code reviewer. Focus on: code quality, potential bugs, security vulnerabilities, performance issues, and adherence to best practices. Always provide specific file:line references."
 ROLES[planner]="You are a technical architect. Focus on: system design, file organization, component relationships, and implementation strategies. Provide clear step-by-step plans with file paths."
 ROLES[explainer]="You are a patient technical mentor. Focus on: explaining how code works, tracing data flow, clarifying architecture decisions. Use simple language and provide concrete examples."
 ROLES[debugger]="You are a debugging expert. Focus on: tracing errors through call stacks, identifying root causes, finding related failure points. Provide specific file:line references and fix recommendations."
+
+# Large-context roles - These specifically leverage the 1M token context window
+ROLES[auditor]="You are a codebase auditor with access to the ENTIRE codebase. Leverage your full context to: identify patterns and anti-patterns across ALL files, find code duplication, detect architectural inconsistencies, measure technical debt, and provide a comprehensive health report. Reference specific files and show cross-file relationships."
+ROLES[migrator]="You are a migration specialist who can see the ENTIRE codebase at once. Plan large-scale migrations by: mapping all affected files, identifying breaking changes, suggesting incremental migration paths, and detecting hidden dependencies. Provide a phased migration plan with file-by-file changes."
+ROLES[documenter]="You are a documentation generator with full codebase visibility. Generate comprehensive documentation by: analyzing all public APIs, tracing data flows end-to-end, documenting component relationships, and creating architecture diagrams (mermaid). Output structured markdown documentation."
+ROLES[security]="You are a security auditor with access to the COMPLETE codebase. Perform deep security analysis: trace all data flows for vulnerabilities, find hardcoded secrets across ALL files, identify authentication/authorization gaps, check for injection vulnerabilities, and audit third-party dependencies. Provide severity ratings and file:line references."
+ROLES[dependency-mapper]="You are a dependency analyst with full codebase visibility. Map the complete dependency graph: internal module dependencies, external package usage, circular dependencies, unused imports, and version conflicts. Output dependency diagrams and identify coupling hotspots."
+ROLES[onboarder]="You are an onboarding guide with access to the entire codebase. Help new developers understand: project structure and conventions, key architectural decisions, common patterns used, important files to know, and typical development workflows. Provide a structured onboarding guide with links to relevant code."
 
 # Template definitions
 get_template() {
@@ -94,9 +115,35 @@ Focus Area:
 TMPL
             ;;
         *)
-            echo ""
+            # Try loading custom template from .gemini/templates/
+            if [ -f ".gemini/templates/${template_name}.md" ]; then
+                cat ".gemini/templates/${template_name}.md"
+            else
+                echo ""
+            fi
             ;;
     esac
+}
+
+# Function to get role (custom or built-in)
+get_role() {
+    local role_name="$1"
+    
+    # Check for custom role in .gemini/roles/
+    if [ -f ".gemini/roles/${role_name}.md" ]; then
+        cat ".gemini/roles/${role_name}.md"
+        echo -e "${CYAN}📋 Loaded custom role: ${role_name}${NC}" >&2
+        return 0
+    fi
+    
+    # Fall back to built-in roles
+    if [ -n "${ROLES[$role_name]:-}" ]; then
+        echo "${ROLES[$role_name]}"
+        return 0
+    fi
+    
+    # Role not found
+    return 1
 }
 
 # Function to find and load GEMINI.md context
@@ -131,14 +178,28 @@ ${BLUE}OPTIONS:${NC}
     -o, --output FORMAT    Output format: text, json (default: text)
     -r, --role ROLE        Use a predefined role: reviewer, planner, explainer, debugger
     -t, --template TMPL    Use a query template: feature, bug, verify, architecture
+    -m, --model MODEL      Specify model (default: gemini-3-pro-preview)
+    --no-fallback          Disable automatic fallback to gemini-3-flash-preview
+    --diff [TARGET]        Include git diff in prompt (default: HEAD, or specify commit/branch)
+    --cache                Cache response for repeated queries
+    --clear-cache          Clear all cached responses
+    --schema SCHEMA        Request structured output: files, issues, plan, json
+    --batch FILE           Process multiple queries from file (one per line)
     --dry-run              Show constructed prompt without executing
     -h, --help             Display this help message
 
 ${BLUE}ROLES:${NC}
-    ${YELLOW}reviewer${NC}    - Code review focus (quality, bugs, security)
-    ${YELLOW}planner${NC}     - Architecture and implementation planning
-    ${YELLOW}explainer${NC}   - Code explanation and mentoring
-    ${YELLOW}debugger${NC}    - Bug tracing and root cause analysis
+    ${YELLOW}reviewer${NC}         - Code review focus (quality, bugs, security)
+    ${YELLOW}planner${NC}          - Architecture and implementation planning
+    ${YELLOW}explainer${NC}        - Code explanation and mentoring
+    ${YELLOW}debugger${NC}         - Bug tracing and root cause analysis
+    ${CYAN}--- Large-Context Roles (leverage 1M tokens) ---${NC}
+    ${YELLOW}auditor${NC}          - Codebase-wide patterns, tech debt, health report
+    ${YELLOW}migrator${NC}         - Large-scale migration planning
+    ${YELLOW}documenter${NC}       - Comprehensive documentation generation
+    ${YELLOW}security${NC}         - Deep security audit across all files
+    ${YELLOW}dependency-mapper${NC} - Dependency graph and coupling analysis
+    ${YELLOW}onboarder${NC}        - New developer onboarding guide
 
 ${BLUE}TEMPLATES:${NC}
     ${YELLOW}feature${NC}     - Pre-implementation analysis for new features
@@ -208,6 +269,45 @@ while [[ $# -gt 0 ]]; do
             DRY_RUN=true
             shift
             ;;
+        -m|--model)
+            MODEL="$2"
+            USE_FALLBACK=false  # User specified model, don't auto-fallback
+            shift 2
+            ;;
+        --no-fallback)
+            USE_FALLBACK=false
+            shift
+            ;;
+        --diff)
+            INCLUDE_DIFF=true
+            if [ -n "${2:-}" ] && [[ ! "$2" =~ ^- ]]; then
+                DIFF_TARGET="$2"
+                shift 2
+            else
+                shift
+            fi
+            ;;
+        --cache)
+            USE_CACHE=true
+            shift
+            ;;
+        --clear-cache)
+            if [ -d "$CACHE_DIR" ]; then
+                rm -rf "$CACHE_DIR"/*
+                echo -e "${GREEN}✓ Cache cleared${NC}"
+            else
+                echo -e "${YELLOW}No cache directory found${NC}"
+            fi
+            exit 0
+            ;;
+        --schema)
+            OUTPUT_SCHEMA="$2"
+            shift 2
+            ;;
+        --batch)
+            BATCH_FILE="$2"
+            shift 2
+            ;;
         -h|--help)
             usage
             ;;
@@ -218,7 +318,48 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Validate prompt
+# Handle batch mode
+if [ -n "$BATCH_FILE" ]; then
+    if [ ! -f "$BATCH_FILE" ]; then
+        echo -e "${RED}Error: Batch file '$BATCH_FILE' not found${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║   Gemini CLI - Batch Processing Mode                   ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${BLUE}Batch file:${NC} $BATCH_FILE"
+    echo -e "${BLUE}Model:${NC} $MODEL"
+    echo -e "${BLUE}Directories:${NC} ${DIRECTORIES:-[all]}"
+    echo ""
+    
+    QUERY_NUM=0
+    TOTAL_QUERIES=$(grep -c -v '^$' "$BATCH_FILE" 2>/dev/null || echo 0)
+    
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Skip empty lines and comments
+        [[ -z "$line" || "$line" =~ ^# ]] && continue
+        
+        ((QUERY_NUM++))
+        echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
+        echo -e "${CYAN}Query $QUERY_NUM/$TOTAL_QUERIES:${NC} ${line:0:60}..."
+        echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
+        echo ""
+        
+        # Run this script recursively for each query (without batch mode)
+        "$0" ${DIRECTORIES:+-d "$DIRECTORIES"} ${ROLE:+-r "$ROLE"} ${TEMPLATE:+-t "$TEMPLATE"} -m "$MODEL" --no-fallback "$line"
+        
+        echo ""
+    done < "$BATCH_FILE"
+    
+    echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}✓ Batch processing complete ($QUERY_NUM queries)${NC}"
+    echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
+    exit 0
+fi
+
+# Validate prompt (skip in batch mode)
 if [ -z "$PROMPT" ]; then
     echo -e "${RED}Error: Prompt is required${NC}"
     usage
@@ -231,23 +372,23 @@ if [ "$DRY_RUN" = false ] && ! command -v gemini &> /dev/null; then
     exit 1
 fi
 
-# Build the command
-CMD="gemini"
+# Build the base command (model added during execution for fallback support)
+BASE_CMD="gemini"
 
 if [ "$ALL_FILES" = true ]; then
-    CMD="$CMD --all-files"
+    BASE_CMD="$BASE_CMD --all-files"
 fi
 
 if [ "$USE_CHECKPOINT" = true ]; then
-    CMD="$CMD -c"
+    BASE_CMD="$BASE_CMD -c"
 fi
 
 if [ "$USE_SANDBOX" = true ]; then
-    CMD="$CMD -s"
+    BASE_CMD="$BASE_CMD -s"
 fi
 
 if [ "$OUTPUT_FORMAT" != "text" ]; then
-    CMD="$CMD -o $OUTPUT_FORMAT"
+    BASE_CMD="$BASE_CMD -o $OUTPUT_FORMAT"
 fi
 
 # Build the full prompt
@@ -265,12 +406,22 @@ fi
 
 # 2. Add role system prompt if specified
 if [ -n "$ROLE" ]; then
-    if [ -n "${ROLES[$ROLE]:-}" ]; then
-        FULL_PROMPT="${FULL_PROMPT}**Your Role**: ${ROLES[$ROLE]}
+    ROLE_CONTENT=$(get_role "$ROLE")
+    if [ -n "$ROLE_CONTENT" ]; then
+        FULL_PROMPT="${FULL_PROMPT}**Your Role**: ${ROLE_CONTENT}
 
 "
     else
-        echo -e "${RED}Error: Unknown role '$ROLE'. Available: reviewer, planner, explainer, debugger${NC}"
+        # List available custom roles
+        CUSTOM_ROLES=""
+        if [ -d ".gemini/roles" ]; then
+            CUSTOM_ROLES=$(ls -1 .gemini/roles/*.md 2>/dev/null | xargs -I {} basename {} .md | tr '\n' ', ' | sed 's/,$//')
+        fi
+        echo -e "${RED}Error: Unknown role '$ROLE'.${NC}"
+        echo -e "${YELLOW}Built-in roles: reviewer, planner, explainer, debugger${NC}"
+        if [ -n "$CUSTOM_ROLES" ]; then
+            echo -e "${YELLOW}Custom roles: $CUSTOM_ROLES${NC}"
+        fi
         exit 1
     fi
 fi
@@ -286,14 +437,112 @@ fi
 if [ -n "$TEMPLATE" ]; then
     TEMPLATE_CONTENT=$(get_template "$TEMPLATE")
     if [ -z "$TEMPLATE_CONTENT" ]; then
-        echo -e "${RED}Error: Unknown template '$TEMPLATE'. Available: feature, bug, verify, architecture${NC}"
+        # List available custom templates
+        CUSTOM_TEMPLATES=""
+        if [ -d ".gemini/templates" ]; then
+            CUSTOM_TEMPLATES=$(ls -1 .gemini/templates/*.md 2>/dev/null | xargs -I {} basename {} .md | tr '\n' ', ' | sed 's/,$//')
+        fi
+        echo -e "${RED}Error: Unknown template '$TEMPLATE'.${NC}"
+        echo -e "${YELLOW}Built-in templates: feature, bug, verify, architecture${NC}"
+        if [ -n "$CUSTOM_TEMPLATES" ]; then
+            echo -e "${YELLOW}Custom templates: $CUSTOM_TEMPLATES${NC}"
+        fi
         exit 1
     fi
     FULL_PROMPT="${FULL_PROMPT}${TEMPLATE_CONTENT}
 "
 fi
 
-# 5. Add user prompt
+# 5. Add git diff if requested
+if [ "$INCLUDE_DIFF" = true ]; then
+    if command -v git &> /dev/null && git rev-parse --git-dir &> /dev/null; then
+        CHANGED_FILES=$(git diff --name-only "$DIFF_TARGET" 2>/dev/null)
+        DIFF_CONTENT=$(git diff "$DIFF_TARGET" 2>/dev/null)
+        
+        if [ -n "$CHANGED_FILES" ]; then
+            FULL_PROMPT="${FULL_PROMPT}
+---
+
+**Changed Files** (diff vs ${DIFF_TARGET}):
+\`\`\`
+${CHANGED_FILES}
+\`\`\`
+
+**Full Diff**:
+\`\`\`diff
+${DIFF_CONTENT}
+\`\`\`
+
+"
+            echo -e "${CYAN}📝 Included git diff vs ${DIFF_TARGET} ($(echo "$CHANGED_FILES" | wc -l) files)${NC}" >&2
+        else
+            echo -e "${YELLOW}⚠ No changes found in git diff vs ${DIFF_TARGET}${NC}" >&2
+        fi
+    else
+        echo -e "${YELLOW}⚠ Not in a git repository, --diff ignored${NC}" >&2
+    fi
+fi
+
+# 6. Add output schema instructions if specified
+if [ -n "$OUTPUT_SCHEMA" ]; then
+    SCHEMA_INSTRUCTION=""
+    case "$OUTPUT_SCHEMA" in
+        files)
+            SCHEMA_INSTRUCTION="
+
+**OUTPUT FORMAT REQUIRED**: Return your response as a JSON array of affected files:
+\`\`\`json
+[
+  {\"path\": \"path/to/file.ts\", \"action\": \"modify|create|delete\", \"reason\": \"why\", \"lines\": \"1-50\"}
+]
+\`\`\`
+"
+            ;;
+        issues)
+            SCHEMA_INSTRUCTION="
+
+**OUTPUT FORMAT REQUIRED**: Return your response as a JSON array of issues found:
+\`\`\`json
+[
+  {\"severity\": \"critical|high|medium|low\", \"file\": \"path/to/file\", \"line\": 123, \"issue\": \"description\", \"fix\": \"recommendation\"}
+]
+\`\`\`
+"
+            ;;
+        plan)
+            SCHEMA_INSTRUCTION="
+
+**OUTPUT FORMAT REQUIRED**: Return your response as a structured implementation plan:
+\`\`\`json
+{
+  \"summary\": \"brief description\",
+  \"phases\": [
+    {\"name\": \"Phase 1\", \"files\": [\"file1.ts\"], \"changes\": \"what to do\", \"effort\": \"hours\"}
+  ],
+  \"risks\": [\"risk 1\", \"risk 2\"],
+  \"dependencies\": [\"dep 1\"]
+}
+\`\`\`
+"
+            ;;
+        json)
+            SCHEMA_INSTRUCTION="
+
+**OUTPUT FORMAT REQUIRED**: Return your entire response as valid JSON that can be parsed programmatically. Structure the JSON appropriately for the query.
+"
+            ;;
+        *)
+            echo -e "${YELLOW}⚠ Unknown schema '$OUTPUT_SCHEMA', using default output format${NC}" >&2
+            ;;
+    esac
+    
+    if [ -n "$SCHEMA_INSTRUCTION" ]; then
+        FULL_PROMPT="${FULL_PROMPT}${SCHEMA_INSTRUCTION}"
+        echo -e "${CYAN}📊 Requesting structured output: $OUTPUT_SCHEMA${NC}" >&2
+    fi
+fi
+
+# 7. Add user prompt
 FULL_PROMPT="${FULL_PROMPT}${PROMPT}"
 
 # Display info
@@ -302,6 +551,7 @@ echo -e "${GREEN}║   Gemini CLI - The Eyes (Enhanced Context Manager)    ║${
 echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${BLUE}Directories:${NC} ${DIRECTORIES:-[all]}"
+echo -e "${BLUE}Model:${NC} $MODEL $([ "$USE_FALLBACK" = true ] && echo "(fallback: $FALLBACK_MODEL)" || echo "(no fallback)")"
 echo -e "${BLUE}Role:${NC} ${ROLE:-[none]}"
 echo -e "${BLUE}Template:${NC} ${TEMPLATE:-[none]}"
 echo -e "${BLUE}Output Format:${NC} $OUTPUT_FORMAT"
@@ -315,17 +565,84 @@ if [ "$DRY_RUN" = true ]; then
     echo ""
     echo -e "${YELLOW}═══ End of Prompt ═══${NC}"
     echo ""
-    echo -e "${CYAN}Command that would run: $CMD${NC}"
+    echo -e "${CYAN}Command that would run: $BASE_CMD -m $MODEL${NC}"
     exit 0
 fi
 
 echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Execute gemini command with positional prompt
-eval "$CMD" '"$FULL_PROMPT"'
+# Generate cache key from prompt hash
+CACHE_KEY=""
+CACHE_FILE=""
+if [ "$USE_CACHE" = true ]; then
+    # Create cache directory if needed
+    mkdir -p "$CACHE_DIR"
+    
+    # Generate hash of the full prompt (using md5sum or fallback)
+    if command -v md5sum &> /dev/null; then
+        CACHE_KEY=$(echo -n "$FULL_PROMPT" | md5sum | cut -d' ' -f1)
+    elif command -v md5 &> /dev/null; then
+        CACHE_KEY=$(echo -n "$FULL_PROMPT" | md5)
+    else
+        # Fallback: use first 32 chars of base64 encoded prompt
+        CACHE_KEY=$(echo -n "$FULL_PROMPT" | base64 | head -c 32)
+    fi
+    CACHE_FILE="$CACHE_DIR/${CACHE_KEY}.txt"
+    
+    # Check if cached response exists
+    if [ -f "$CACHE_FILE" ]; then
+        echo -e "${CYAN}📦 Using cached response (hash: ${CACHE_KEY:0:8}...)${NC}"
+        echo ""
+        cat "$CACHE_FILE"
+        echo ""
+        echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
+        echo -e "${GREEN}✓ Gemini analysis complete (from cache)${NC}"
+        echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
+        exit 0
+    fi
+fi
 
-EXIT_CODE=$?
+# Execute gemini command with model selection and fallback
+CMD="$BASE_CMD -m $MODEL"
+
+# Capture output if caching
+if [ "$USE_CACHE" = true ]; then
+    RESPONSE=$(eval "$CMD" '"$FULL_PROMPT"' 2>&1)
+    EXIT_CODE=$?
+    echo "$RESPONSE"
+else
+    eval "$CMD" '"$FULL_PROMPT"'
+    EXIT_CODE=$?
+fi
+
+# If primary model failed and fallback is enabled, try fallback model
+if [ $EXIT_CODE -ne 0 ] && [ "$USE_FALLBACK" = true ] && [ "$MODEL" = "$PRIMARY_MODEL" ]; then
+    echo ""
+    echo -e "${YELLOW}⚠ Primary model ($MODEL) failed. Trying fallback model ($FALLBACK_MODEL)...${NC}"
+    echo ""
+    CMD="$BASE_CMD -m $FALLBACK_MODEL"
+    
+    if [ "$USE_CACHE" = true ]; then
+        RESPONSE=$(eval "$CMD" '"$FULL_PROMPT"' 2>&1)
+        EXIT_CODE=$?
+        echo "$RESPONSE"
+    else
+        eval "$CMD" '"$FULL_PROMPT"'
+        EXIT_CODE=$?
+    fi
+    
+    if [ $EXIT_CODE -eq 0 ]; then
+        echo ""
+        echo -e "${CYAN}ℹ Response generated using fallback model: $FALLBACK_MODEL${NC}"
+    fi
+fi
+
+# Save to cache if successful
+if [ "$USE_CACHE" = true ] && [ $EXIT_CODE -eq 0 ] && [ -n "$CACHE_FILE" ]; then
+    echo "$RESPONSE" > "$CACHE_FILE"
+    echo -e "${CYAN}💾 Response cached (hash: ${CACHE_KEY:0:8}...)${NC}"
+fi
 
 echo ""
 echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
