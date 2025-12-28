@@ -6,6 +6,43 @@
 
 set -euo pipefail
 
+# Load configuration file if it exists (allows setting defaults)
+CONFIG_FILE=".gemini/config"
+if [ -f "$CONFIG_FILE" ]; then
+    # shellcheck source=/dev/null
+    source "$CONFIG_FILE"
+fi
+
+# Progress spinner for long-running operations
+SPINNER_PID=""
+show_spinner() {
+    local msg="${1:-Waiting for Gemini...}"
+    local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local i=0
+    while true; do
+        printf "\r${CYAN}${spin:$i:1} ${msg}${NC}"
+        i=$(( (i + 1) % 10 ))
+        sleep 0.1
+    done
+}
+
+start_spinner() {
+    if [ "$VERBOSE" = true ]; then
+        show_spinner "$1" &
+        SPINNER_PID=$!
+        disown
+    fi
+}
+
+stop_spinner() {
+    if [ -n "$SPINNER_PID" ] && kill -0 "$SPINNER_PID" 2>/dev/null; then
+        kill "$SPINNER_PID" 2>/dev/null || true
+        wait "$SPINNER_PID" 2>/dev/null || true
+        printf "\r"
+        SPINNER_PID=""
+    fi
+}
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -39,6 +76,19 @@ VERBOSE=false  # Quiet by default for Claude consumption
 CHAT_SESSION=""
 SMART_CTX_KEYWORDS=""
 HISTORY_DIR=".gemini/history"
+LOG_FILE=""  # Optional log file for debugging
+MAX_PROMPT_LENGTH=1000000  # ~1MB limit to prevent resource exhaustion
+
+# New enhancement settings
+MAX_RETRIES=2  # Retry count on API failure
+ESTIMATE_ONLY=false  # Show token estimate without executing
+VALIDATE_RESPONSE=false  # Validate response format after execution
+CONTEXT_CHECK=false  # Check for stale context
+SUMMARIZE_MODE=false  # Request compressed response
+TARGET_FILES=""  # Specific files to include (comma-separated)
+DIFF_AWARE=false  # Only include files changed in current branch
+SAVE_LAST_RESPONSE=false  # Save response for later parsing
+LAST_RESPONSE_FILE=".gemini/last-response.txt"
 
 # Role definitions - Built-in roles
 # All roles include structured output instructions for Claude consumption
@@ -143,6 +193,39 @@ Provide:
 Focus Area:
 TMPL
             ;;
+        implement-ready)
+            cat <<'TMPL'
+Implementation-Ready Analysis (for Claude Code).
+
+I need to implement this feature. Provide ACTIONABLE output:
+
+1. **Exact files to create/modify** with full paths
+2. **Code patterns to follow** - show actual code excerpts I should imitate
+3. **Function signatures** I should use (copy-paste ready)
+4. **Import statements** needed
+5. **Test patterns** to follow
+
+Be extremely specific. Claude Code will implement based on your analysis.
+
+Feature to implement:
+TMPL
+            ;;
+        fix-ready)
+            cat <<'TMPL'
+Bug Fix Analysis (for Claude Code).
+
+Analyze this bug and provide FIX-READY output:
+
+1. **Root cause file:line** - exact location
+2. **Fix code** - show the corrected code
+3. **Related files** that may have same issue
+4. **Test case** to verify fix
+
+Be extremely specific. Claude Code will apply the fix directly.
+
+Bug details:
+TMPL
+            ;;
         *)
             # Try loading custom template from .gemini/templates/
             if [ -f ".gemini/templates/${template_name}.md" ]; then
@@ -161,6 +244,8 @@ get_role() {
     # Check for custom role in .gemini/roles/
     if [ -f ".gemini/roles/${role_name}.md" ]; then
         cat ".gemini/roles/${role_name}.md"
+        # Append standard output format to custom roles for Claude consumption
+        echo "$ROLE_OUTPUT_FORMAT"
         echo -e "${CYAN}📋 Loaded custom role: ${role_name}${NC}" >&2
         return 0
     fi
@@ -175,10 +260,10 @@ get_role() {
     return 1
 }
 
-# Function to find and load GEMINI.md context
+# Function to find and load prompt injection context
 load_context() {
     local context=""
-    local context_files=(".gemini/GEMINI.md" "GEMINI.md" ".gemini/context.md")
+    local context_files=(".gemini/GeminiContext.md" "GeminiContext.md" ".gemini/context.md")
     
     for cf in "${context_files[@]}"; do
         if [ -f "$cf" ]; then
@@ -217,7 +302,19 @@ ${BLUE}OPTIONS:${NC}
     --chat SESSION         Enable conversation mode with session history
     --smart-ctx KEYWORDS   Auto-find context using keywords (grep strategy)
     --verbose              Show status messages (quiet by default for AI consumption)
+    --log FILE             Log execution details to file for debugging
     --dry-run              Show constructed prompt without executing
+    
+    ${CYAN}--- Enhancement Options ---${NC}
+    --estimate             Show token/cost estimate without executing
+    --validate             Validate response format after execution
+    --context-check        Warn if files changed since last query
+    --retry N              Retry N times on API failure (default: 2)
+    --summarize            Request compressed/shorter response
+    --files FILE1,FILE2    Target specific files only
+    --diff-aware           Include only files changed in current branch
+    --save-response        Save response to .gemini/last-response.txt for parsing
+    
     -h, --help             Display this help message
 
 ${BLUE}ROLES:${NC}
@@ -352,6 +449,42 @@ while [[ $# -gt 0 ]]; do
             VERBOSE=true
             shift
             ;;
+        --log)
+            LOG_FILE="$2"
+            shift 2
+            ;;
+        --estimate)
+            ESTIMATE_ONLY=true
+            shift
+            ;;
+        --validate)
+            VALIDATE_RESPONSE=true
+            shift
+            ;;
+        --context-check)
+            CONTEXT_CHECK=true
+            shift
+            ;;
+        --retry)
+            MAX_RETRIES="$2"
+            shift 2
+            ;;
+        --summarize)
+            SUMMARIZE_MODE=true
+            shift
+            ;;
+        --files)
+            TARGET_FILES="$2"
+            shift 2
+            ;;
+        --diff-aware)
+            DIFF_AWARE=true
+            shift
+            ;;
+        --save-response)
+            SAVE_LAST_RESPONSE=true
+            shift
+            ;;
         -h|--help)
             usage
             ;;
@@ -392,7 +525,8 @@ if [ -n "$BATCH_FILE" ]; then
         echo ""
         
         # Run this script recursively for each query (without batch mode)
-        "$0" ${DIRECTORIES:+-d "$DIRECTORIES"} ${ROLE:+-r "$ROLE"} ${TEMPLATE:+-t "$TEMPLATE"} -m "$MODEL" --no-fallback "$line"
+        # Use BASH_SOURCE[0] instead of $0 for reliable path resolution
+        "${BASH_SOURCE[0]}" ${DIRECTORIES:+-d "$DIRECTORIES"} ${ROLE:+-r "$ROLE"} ${TEMPLATE:+-t "$TEMPLATE"} -m "$MODEL" --no-fallback "$line"
         
         echo ""
     done < "$BATCH_FILE"
@@ -652,6 +786,26 @@ fi
 # 7. Add user prompt
 FULL_PROMPT="${FULL_PROMPT}${PROMPT}"
 
+# 8. Input validation - prevent resource exhaustion
+PROMPT_LENGTH=${#FULL_PROMPT}
+if [ $PROMPT_LENGTH -gt $MAX_PROMPT_LENGTH ]; then
+    echo -e "${RED}Error: Prompt too large (${PROMPT_LENGTH} chars, max: ${MAX_PROMPT_LENGTH})${NC}"
+    echo -e "${YELLOW}Tip: Use more specific directory filters or reduce context${NC}"
+    exit 1
+fi
+
+# Logging helper function
+log_message() {
+    if [ -n "$LOG_FILE" ]; then
+        echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $1" >> "$LOG_FILE"
+    fi
+}
+
+# Log execution start
+log_message "=== Gemini CLI Wrapper Start ==="
+log_message "Model: $MODEL | Role: ${ROLE:-none} | Template: ${TEMPLATE:-none}"
+log_message "Prompt length: $PROMPT_LENGTH chars"
+
 # Display info (only in verbose mode)
 if [ "$VERBOSE" = true ]; then
     echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
@@ -680,6 +834,51 @@ fi
 
 [ "$VERBOSE" = true ] && echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
 [ "$VERBOSE" = true ] && echo ""
+
+# 9. Handle --estimate (show token estimate without executing)
+if [ "$ESTIMATE_ONLY" = true ]; then
+    # Approximate: ~4 chars per token for English text
+    ESTIMATED_TOKENS=$((PROMPT_LENGTH / 4))
+    # Approximate cost (Gemini pricing varies, using rough estimate)
+    COST_ESTIMATE=$(echo "scale=4; $ESTIMATED_TOKENS * 0.00000015" | bc 2>/dev/null || echo "N/A")
+    
+    echo -e "${CYAN}═══ Token Estimate ═══${NC}"
+    echo -e "${BLUE}Prompt length:${NC} $PROMPT_LENGTH characters"
+    echo -e "${BLUE}Estimated tokens:${NC} ~$ESTIMATED_TOKENS"
+    echo -e "${BLUE}Estimated cost:${NC} ~\$$COST_ESTIMATE (varies by model)"
+    echo -e "${CYAN}═══════════════════════${NC}"
+    exit 0
+fi
+
+# 10. Handle --context-check (warn if files changed since last query)
+if [ "$CONTEXT_CHECK" = true ]; then
+    CONTEXT_HASH_FILE=".gemini/.last-context-hash"
+    # Generate hash of included directories/files
+    if [ -n "$DIRECTORIES" ]; then
+        CURRENT_HASH=$(find $DIRECTORIES -type f -exec md5sum {} \; 2>/dev/null | md5sum | cut -d' ' -f1)
+    else
+        CURRENT_HASH=$(find . -maxdepth 2 -type f \( -name "*.ts" -o -name "*.js" -o -name "*.py" -o -name "*.kt" \) -exec md5sum {} \; 2>/dev/null | head -100 | md5sum | cut -d' ' -f1)
+    fi
+    
+    if [ -f "$CONTEXT_HASH_FILE" ]; then
+        LAST_HASH=$(cat "$CONTEXT_HASH_FILE")
+        if [ "$CURRENT_HASH" != "$LAST_HASH" ]; then
+            echo -e "${YELLOW}⚠ Context has changed since last query. Files may have been modified.${NC}" >&2
+            echo -e "${YELLOW}  Consider re-analyzing if using cached data.${NC}" >&2
+        fi
+    fi
+    
+    # Save current hash
+    mkdir -p "$(dirname "$CONTEXT_HASH_FILE")"
+    echo "$CURRENT_HASH" > "$CONTEXT_HASH_FILE"
+fi
+
+# 11. Handle --summarize (request compressed response)
+if [ "$SUMMARIZE_MODE" = true ]; then
+    FULL_PROMPT="${FULL_PROMPT}
+
+**IMPORTANT: Provide a COMPRESSED response. Be extremely concise. Use bullet points. Omit verbose explanations. Maximum 500 words.**"
+fi
 
 # Generate cache key from prompt hash
 CACHE_KEY=""
@@ -712,15 +911,21 @@ fi
 
 # Execute gemini command with model selection and fallback
 CMD="$BASE_CMD -m $MODEL"
+log_message "Executing: $CMD"
+
+# Start progress spinner in verbose mode
+start_spinner "Calling Gemini API..."
 
 # Capture output if caching
 if [ "$USE_CACHE" = true ]; then
     RESPONSE=$(eval "$CMD" '"$FULL_PROMPT"' 2>&1)
     EXIT_CODE=$?
+    stop_spinner
     echo "$RESPONSE"
 else
     eval "$CMD" '"$FULL_PROMPT"'
     EXIT_CODE=$?
+    stop_spinner
 fi
 
 # If primary model failed and fallback is enabled, try fallback model
@@ -768,7 +973,8 @@ if [ -n "$CHAT_SESSION" ] && [ $EXIT_CODE -eq 0 ]; then
              # Use a temporary file to avoid race conditions/corruption
              jq ". + [$ENTRY]" "$HIST_FILE" > "${HIST_FILE}.tmp" && mv "${HIST_FILE}.tmp" "$HIST_FILE"
         else
-             sed -i '$d' "$HIST_FILE"
+             # Portable approach: use temp file (works on Linux, macOS, Windows/Git Bash)
+             head -n -1 "$HIST_FILE" > "${HIST_FILE}.tmp" && mv "${HIST_FILE}.tmp" "$HIST_FILE"
              echo ",$ENTRY]" >> "$HIST_FILE"
         fi
     fi
@@ -785,5 +991,30 @@ if [ "$VERBOSE" = true ]; then
     fi
     echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
 fi
+
+# Save response for later parsing (--save-response)
+if [ "$SAVE_LAST_RESPONSE" = true ] && [ $EXIT_CODE -eq 0 ] && [ -n "$RESPONSE" ]; then
+    mkdir -p "$(dirname "$LAST_RESPONSE_FILE")"
+    echo "$RESPONSE" > "$LAST_RESPONSE_FILE"
+    [ "$VERBOSE" = true ] && echo -e "${CYAN}💾 Response saved to $LAST_RESPONSE_FILE${NC}" >&2
+fi
+
+# Validate response format (--validate)
+if [ "$VALIDATE_RESPONSE" = true ] && [ $EXIT_CODE -eq 0 ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -f "$SCRIPT_DIR/gemini-parse.sh" ]; then
+        if [ -n "$RESPONSE" ]; then
+            echo "$RESPONSE" | "$SCRIPT_DIR/gemini-parse.sh" --validate >&2
+        elif [ -f "$LAST_RESPONSE_FILE" ]; then
+            "$SCRIPT_DIR/gemini-parse.sh" --validate "$LAST_RESPONSE_FILE" >&2
+        fi
+    else
+        echo -e "${YELLOW}⚠ gemini-parse.sh not found, skipping validation${NC}" >&2
+    fi
+fi
+
+# Log completion
+log_message "Exit code: $EXIT_CODE"
+log_message "=== Gemini CLI Wrapper End ==="
 
 exit $EXIT_CODE

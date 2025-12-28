@@ -1,282 +1,137 @@
-# Gemini Context Companion for Claude Code
+# Gemini CLI: Research Subagent for Claude Code
 
-A token-efficient workflow that leverages Gemini's 1M+ token context window to provide comprehensive code analysis to Claude Code, reducing Claude's token consumption by up to 95%.
+A Claude Skill that makes Gemini CLI a seamless research subagent. Gemini's 1M+ token context window handles large-scale code analysis, while Claude handles implementation.
 
-## Overview
+## Installation
 
-Instead of Claude Code reading large files and entire codebases directly (expensive), this workflow delegates code analysis and research to **Gemini**, which has a massive 1M+ token context window. Gemini reads entire codebases, provides architectural insights, traces bugs across multiple files, and delivers concise summaries back to Claude for implementation.
-
-**Result**: Claude uses ~300 tokens for analysis instead of ~6,500+ tokens (95% savings).
-
-## Why Gemini as a Companion?
-
-| Challenge | Solution |
-|-----------|----------|
-| **Large codebases** | Gemini reads entire directories with 1M+ context window |
-| **Token limits** | Claude delegates reading to Gemini, conserves its tokens |
-| **Complex analysis** | Gemini traces patterns across hundreds of files |
-| **Architectural understanding** | Gemini provides high-level overviews before implementation |
-| **Bug tracing** | Gemini follows call stacks through multiple files |
-
-## Prerequisites
-
-### Platform
-- **Windows**: WSL or Git Bash required (wrapper is a bash script)
-- **macOS/Linux**: Native bash
-
-### Gemini CLI
-
-Install the Gemini CLI following the [official documentation](https://ai.google.dev/gemini-api/docs/cli).
-
-Verify installation:
+### Option 1: Copy Skill to Global Directory (Recommended)
 ```bash
-gemini --version
+# Copy the skill to Claude's global skills directory
+cp -r .claude/skills/gemini-research ~/.claude/skills/
 ```
 
-## Quick Start
+### Option 2: Use Project-Level Skill
+The skill is already in `.claude/skills/gemini-research/` - Claude will auto-discover it when working in this project.
 
-### 1. Clone and Setup
+### Prerequisites
+1. **Gemini CLI**: Install from [official docs](https://ai.google.dev/gemini-api/docs/cli)
+2. **Platform**: WSL or Git Bash on Windows, native bash on macOS/Linux
+
 ```bash
-git clone <repo-url>
-cd Multi-Agent-Workflow
+gemini --version  # Verify installation
 chmod +x skills/gemini.agent.wrapper.sh
 ```
 
-### 2. Basic Usage
-
-**Analyze code architecture**:
-```bash
-./skills/gemini.agent.wrapper.sh -d "@src/" "How is authentication implemented? Provide file paths with line numbers."
-```
-
-**Trace a bug**:
-```bash
-./skills/gemini.agent.wrapper.sh -d "@app/src/" "Bug: Connection drops after 30 seconds. Trace the timeout handling logic through all files."
-```
-
-**Understand a feature**:
-```bash
-./skills/gemini.agent.wrapper.sh -d "@app/" "Explain how user authentication flows from login UI to API. Show the complete data pipeline."
-```
-
-## Workflow: Claude Code + Gemini
+## How It Works
 
 ```
-┌─────────────┐          ┌─────────────┐
-│    Claude   │◄────────▶│   Gemini    │
-│    Code     │          │  Analyzer   │
-│ (Developer) │          │  (Research) │
-└─────────────┘          └─────────────┘
-      │                        │
-      │ 1. Query Analysis      │
-      │ (~300 tokens)          │
-      ├───────────────────────▶│
-      │                        │ Reads entire
-      │                        │ codebase
-      │                        │ (0 Claude tokens)
-      │                        │
-      │ 2. Analysis Results    │
-      │ (concise summary)      │
-      │◄───────────────────────┤
-      │                        │
-      ▼                        │
- 3. Implement                  │
- (Claude Code)                 │
-      │                        │
-      │ 4. Verify Changes      │
-      ├───────────────────────▶│
-      │                        │
-      │ 5. Verification Report │
-      │◄───────────────────────┤
-      ▼
-   Complete
+Claude Code (Engineer)          Gemini CLI (Research)
+        │                              │
+        │ 1. Invoke wrapper            │
+        ├─────────────────────────────▶│
+        │                              │ Reads entire
+        │                              │ codebase (1M+ tokens)
+        │                              │
+        │ 2. Structured response       │
+        │◀─────────────────────────────┤
+        │                              │
+        ▼                              
+ 3. Implement based on analysis        
 ```
+
+Claude automatically invokes the skill when it needs large-context analysis. The skill instructs Claude on when and how to use Gemini.
 
 ## File Structure
 
 ```
 ./
-├── .gemini/                       # Custom roles and templates
-│   ├── roles/                     # Custom role definitions
-│   └── templates/                 # Custom query templates
-├── README.md                      # This file
-├── CLAUDE.md                      # Quick reference for Claude Code
-├── EXAMPLES.md                    # Real-world workflow examples
-├── GEMINI.md                      # Gemini context file
+├── .claude/
+│   ├── settings.json          # Hooks to remind Claude to use Gemini
+│   └── skills/gemini-research/
+│       └── SKILL.md           # Claude Skill definition
+├── .gemini/
+│   ├── roles/                 # Custom expert roles
+│   └── templates/             # Query templates
+├── GeminiContext.md           # Context injected into every Gemini query
+├── EXAMPLES.md                # Real-world workflow examples
+├── README.md                  # This file
 └── skills/
-    ├── gemini.agent.wrapper.sh    # Gemini CLI wrapper (main tool)
-    ├── Claude-Code-Integration.md # Integration guide
-    └── pre-commit.hook            # Git pre-commit verification
+    ├── gemini.agent.wrapper.sh # Core wrapper script
+    ├── gemini-parse.sh         # Response parser
+    └── pre-commit.hook         # Git verification hook
 ```
 
-## Gemini Wrapper Reference
+## Hooks
+
+The `.claude/settings.json` includes hooks that remind Claude to use Gemini:
+
+- **UserPromptSubmit**: Before processing, Claude considers if Gemini should analyze first
+- **Stop**: After completing work, Claude considers verifying changes with Gemini
+
+## Claude Skill: Gemini Research
+
+The skill at `.claude/skills/gemini-research/SKILL.md` teaches Claude:
+
+- **When to use Gemini**: Files >100 lines, multi-file analysis, architecture review
+- **How to invoke**: `./skills/gemini.agent.wrapper.sh -r [role] "query"`
+- **Available roles**: reviewer, debugger, planner, security, auditor, plus custom roles
+- **Response format**: Structured `## SUMMARY`, `## FILES`, `## ANALYSIS`, `## RECOMMENDATIONS`
+
+## Usage Examples
+
+Claude will automatically use these patterns based on the skill:
 
 ```bash
-./skills/gemini.agent.wrapper.sh [OPTIONS] "<prompt>"
+# Code review
+./skills/gemini.agent.wrapper.sh -r reviewer -d "@src/" "Review the auth module"
 
-Options:
-  -d, --dir DIRS        Directories to include (e.g., "@src/ @lib/")
-  -a, --all-files       Include all files
-  -r, --role ROLE       Use predefined role (reviewer, planner, security, etc.)
-  -t, --template TMPL   Use query template (feature, bug, verify, architecture)
-  -m, --model MODEL     Specify model (default: gemini-3-pro-preview)
-  --diff [TARGET]       Include git diff in prompt
-  --cache               Cache response for repeated queries
-  --schema SCHEMA       Structured output (files, issues, plan, json)
-  --batch FILE          Process multiple queries from file
-  --verbose             Show status messages (quiet by default for AI consumption)
-  --dry-run             Show prompt without executing
+# Bug tracing
+./skills/gemini.agent.wrapper.sh -r debugger "Error at auth.ts:145"
+
+# Security audit
+./skills/gemini.agent.wrapper.sh -r security -d "@src/" "Security audit"
+
+# Implementation-ready analysis
+./skills/gemini.agent.wrapper.sh -t implement-ready -d "@src/" "Add user profiles"
+
+# Post-implementation verification
+./skills/gemini.agent.wrapper.sh -t verify --diff "Added password reset"
 ```
 
-**Note**: Output is quiet by default (only Gemini's response), optimized for Claude Code consumption. Use `--verbose` for human debugging.
+## Custom Roles
 
-### Important: Handling Large Codebases
+Add project-specific roles in `.gemini/roles/`:
 
-When analyzing very large directories (1000s of files), use targeted subdirectories to avoid file handle overflow:
+| Role | File | Focus |
+|------|------|-------|
+| `kotlin-expert` | `.gemini/roles/kotlin-expert.md` | Kotlin/Android, coroutines |
+| `typescript-expert` | `.gemini/roles/typescript-expert.md` | TypeScript type safety |
+| `python-expert` | `.gemini/roles/python-expert.md` | Python async |
+| `api-designer` | `.gemini/roles/api-designer.md` | REST API design |
+| `database-expert` | `.gemini/roles/database-expert.md` | Query optimization |
 
-❌ **Don't**: Analyze entire large directory
-```bash
-./skills/gemini.agent.wrapper.sh -d "@large-project/" "analyze code"
+## Wrapper Options
+
+```
+-d, --dir DIRS        Directories to include (@src/ @lib/)
+-r, --role ROLE       Use role (built-in or custom)
+-t, --template TMPL   Use template (feature, bug, verify, implement-ready, fix-ready)
+--diff [TARGET]       Include git diff
+--cache               Cache response
+--estimate            Show token estimate
+--validate            Validate response format
+--summarize           Request compressed response
+--dry-run             Show prompt without executing
+--verbose             Show status messages
 ```
 
-✅ **Do**: Use targeted subdirectories or search first
-```bash
-# Analyze specific subdirectories
-./skills/gemini.agent.wrapper.sh -d "@large-project/src/auth/" "analyze authentication"
+## Design Philosophy
 
-# Or use grep first to find relevant files
-grep -r "authentication" src/ -l | head -20
-./skills/gemini.agent.wrapper.sh -d "@src/auth/" "analyze authentication"
-```
+This repository has one purpose: **making Gemini CLI a seamless research subagent for Claude Code**.
 
-## Common Query Patterns
-
-### Architecture Analysis
-```bash
-./skills/gemini.agent.wrapper.sh -d "@app/src/" "
-Analyze architecture for implementing [feature].
-
-Provide:
-1. Current patterns and file organization
-2. Files that will be affected
-3. Dependencies and risks
-4. Recommended approach with examples from existing code
-"
-```
-
-### Bug Tracing
-```bash
-./skills/gemini.agent.wrapper.sh -d "@app/src/" "
-Bug: [description]
-Location: [file:line]
-
-Trace:
-1. Root cause through call stack
-2. All affected files with line numbers
-3. Similar patterns with same issue
-4. Recommended fix
-"
-```
-
-### Implementation Verification
-```bash
-./skills/gemini.agent.wrapper.sh -d "@app/src/" "
-Changes implemented:
-- [file1]: [changes]
-- [file2]: [changes]
-
-Verify:
-1. Architectural consistency
-2. No regressions
-3. Best practices followed
-4. Security implications
-5. Edge cases handled
-"
-```
-
-## Token Savings Examples
-
-### Example 1: Understanding API Layer
-
-**❌ Old Way (Claude reads directly)**:
-- Claude reads ApiClient.kt (2k tokens)
-- Claude reads AuthService.kt (3k tokens)
-- Claude reads UserRepository.kt (1.5k tokens)
-- **Total: 6.5k tokens**
-
-**✅ New Way (Gemini analyzes)**:
-- Claude queries Gemini (300 tokens)
-- Gemini reads all files (0 Claude tokens)
-- Gemini responds with summary (0 Claude tokens)
-- **Total: 300 tokens (95% savings!)**
-
-### Example 2: Full Codebase Audit
-
-**❌ Old Way**:
-- Claude would need to read chunks of the codebase
-- Multiple context windows required
-- Estimated: 50k+ tokens
-
-**✅ New Way**:
-- Single Gemini query with `--all-files`
-- Comprehensive audit with 0 Claude read tokens
-- Claude only pays for the query and result
-- **Total: ~500 tokens (99% savings!)**
-
-## Best Practices
-
-### ✅ Do
-- **Always query Gemini before implementing** - Let Gemini read the codebase first
-- **Be specific** - Request file paths, line numbers, and code excerpts
-- **Use structured prompts** - Ask for numbered lists and clear sections
-- **Include context** - Mention error messages, file locations, or symptoms
-- **Verify changes** - Ask Gemini to review your implementation for consistency
-
-### ❌ Don't
-- **Skip analysis** - Don't have Claude read large files directly
-- **Use vague prompts** - Avoid "how does this work?" without specifics
-- **Forget follow-up** - Always verify changes with Gemini after implementation
-- **Overload queries** - Break complex questions into focused queries
-
-## Integration with Claude Code
-
-See [`skills/Claude-Code-Integration.md`](skills/Claude-Code-Integration.md) for detailed integration patterns and workflows.
-
-See [`EXAMPLES.md`](EXAMPLES.md) for real-world examples of Gemini-Claude Code workflows.
-
-## Troubleshooting
-
-### "command not found: gemini"
-Ensure Gemini CLI is installed and in PATH. On Windows, run from WSL or Git Bash.
-
-### EMFILE: too many open files
-Use targeted subdirectories instead of entire large projects:
-```bash
-# Instead of analyzing entire project
-./skills/gemini.agent.wrapper.sh -d "@large-project/" "..."
-
-# Analyze specific subdirectories
-./skills/gemini.agent.wrapper.sh -d "@large-project/src/specific/" "..."
-```
-
-### Wrapper permission denied
-```bash
-chmod +x skills/gemini.agent.wrapper.sh
-```
-
-## What Happened to Codex and Copilot?
-
-This repository previously included Codex and Copilot as "engineering subagents" for implementation work. The repository has been refocused on Gemini's unique strength: its massive context window for research and analysis as a companion to Claude Code.
-
-If you need the multi-agent version, see the [`.archive/`](.archive/) directory and git history.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Update Gemini-related documentation
-4. Test wrapper script
-5. Submit PR
+- **Gemini reads** (1M+ token context)
+- **Claude implements** (based on Gemini's analysis)
+- **Gemini verifies** (post-implementation review)
 
 ## License
 

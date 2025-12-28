@@ -1,0 +1,21 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "type": "prompt",
+        "prompt": "Before processing this request, consider: Does this involve reading >100 lines of code, analyzing architecture, tracing bugs across files, or reviewing security? If so, use the Gemini Research skill (./skills/gemini.agent.wrapper.sh) to analyze first, then implement based on Gemini's findings."
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "type": "prompt", 
+        "prompt": "If you made code changes, consider verifying them with Gemini: ./skills/gemini.agent.wrapper.sh -t verify --diff 'Summary of changes'"
+      }
+    ]
+  },
+  "enabledSkills": [
+    "gemini-research"
+  ]
+}
