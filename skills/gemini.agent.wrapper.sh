@@ -90,9 +90,9 @@ DIFF_AWARE=false  # Only include files changed in current branch
 SAVE_LAST_RESPONSE=false  # Save response for later parsing
 LAST_RESPONSE_FILE=".gemini/last-response.txt"
 
-# Role definitions - Built-in roles
-# All roles include structured output instructions for Claude consumption
-declare -A ROLES
+# Role definitions are loaded from .gemini/roles/*.md files
+# The ROLE_OUTPUT_FORMAT is appended to all custom roles automatically
+# No built-in roles are hardcoded - all roles are externalized
 
 # Standard output format instruction appended to all roles
 ROLE_OUTPUT_FORMAT="
@@ -109,27 +109,6 @@ FORMAT YOUR RESPONSE AS:
 
 ## RECOMMENDATIONS
 [Numbered list of actionable items]"
-
-ROLES[reviewer]="You are a senior code reviewer analyzing code for another AI developer. Focus on: code quality, potential bugs, security vulnerabilities, performance issues, and adherence to best practices. Always provide specific file:line references.${ROLE_OUTPUT_FORMAT}"
-
-ROLES[planner]="You are a technical architect providing implementation guidance for another AI developer. Focus on: system design, file organization, component relationships, and implementation strategies. Provide clear step-by-step plans with file paths.${ROLE_OUTPUT_FORMAT}"
-
-ROLES[explainer]="You are a technical expert explaining code to another AI developer. Focus on: how code works, data flow, architecture patterns. Be precise with file:line references.${ROLE_OUTPUT_FORMAT}"
-
-ROLES[debugger]="You are a debugging expert helping another AI developer trace issues. Focus on: error call stacks, root causes, related failure points. Provide specific file:line references and fix recommendations.${ROLE_OUTPUT_FORMAT}"
-
-# Large-context roles
-ROLES[auditor]="You are a codebase auditor with access to the ENTIRE codebase, reporting to another AI developer. Identify patterns/anti-patterns across ALL files, code duplication, architectural inconsistencies, tech debt. Reference specific files and cross-file relationships.${ROLE_OUTPUT_FORMAT}"
-
-ROLES[migrator]="You are a migration specialist who can see the ENTIRE codebase, planning for another AI developer. Map all affected files, breaking changes, incremental migration paths, hidden dependencies. Provide phased plan with file-by-file changes.${ROLE_OUTPUT_FORMAT}"
-
-ROLES[documenter]="You are a documentation generator with full codebase visibility, creating docs for another AI developer. Analyze public APIs, trace data flows, document component relationships. Output structured markdown.${ROLE_OUTPUT_FORMAT}"
-
-ROLES[security]="You are a security auditor with access to the COMPLETE codebase, reporting to another AI developer. Trace data flows for vulnerabilities, find hardcoded secrets, identify auth gaps, check injection vulnerabilities. Provide severity ratings (CRITICAL/HIGH/MEDIUM/LOW) and file:line references.${ROLE_OUTPUT_FORMAT}"
-
-ROLES[dependency-mapper]="You are a dependency analyst with full codebase visibility, reporting to another AI developer. Map complete dependency graph: internal modules, external packages, circular dependencies, unused imports. Output structured dependency information.${ROLE_OUTPUT_FORMAT}"
-
-ROLES[onboarder]="You are an onboarding guide with access to the entire codebase, briefing another AI developer. Explain: project structure, key architectural decisions, common patterns, important files. Provide structured overview.${ROLE_OUTPUT_FORMAT}"
 
 # Template definitions
 get_template() {
@@ -237,25 +216,19 @@ TMPL
     esac
 }
 
-# Function to get role (custom or built-in)
+# Function to get role (from .gemini/roles/ directory only)
 get_role() {
     local role_name="$1"
-    
-    # Check for custom role in .gemini/roles/
+
+    # Check for role in .gemini/roles/
     if [ -f ".gemini/roles/${role_name}.md" ]; then
         cat ".gemini/roles/${role_name}.md"
-        # Append standard output format to custom roles for Claude consumption
+        # Append standard output format to all roles for Claude consumption
         echo "$ROLE_OUTPUT_FORMAT"
-        echo -e "${CYAN}📋 Loaded custom role: ${role_name}${NC}" >&2
+        [ "$VERBOSE" = true ] && echo -e "${CYAN}📋 Loaded role: ${role_name}${NC}" >&2
         return 0
     fi
-    
-    # Fall back to built-in roles
-    if [ -n "${ROLES[$role_name]:-}" ]; then
-        echo "${ROLES[$role_name]}"
-        return 0
-    fi
-    
+
     # Role not found
     return 1
 }
@@ -318,17 +291,9 @@ ${BLUE}OPTIONS:${NC}
     -h, --help             Display this help message
 
 ${BLUE}ROLES:${NC}
-    ${YELLOW}reviewer${NC}         - Code review focus (quality, bugs, security)
-    ${YELLOW}planner${NC}          - Architecture and implementation planning
-    ${YELLOW}explainer${NC}        - Code explanation and mentoring
-    ${YELLOW}debugger${NC}         - Bug tracing and root cause analysis
-    ${CYAN}--- Large-Context Roles (leverage 1M tokens) ---${NC}
-    ${YELLOW}auditor${NC}          - Codebase-wide patterns, tech debt, health report
-    ${YELLOW}migrator${NC}         - Large-scale migration planning
-    ${YELLOW}documenter${NC}       - Comprehensive documentation generation
-    ${YELLOW}security${NC}         - Deep security audit across all files
-    ${YELLOW}dependency-mapper${NC} - Dependency graph and coupling analysis
-    ${YELLOW}onboarder${NC}        - New developer onboarding guide
+    Roles are loaded from ${CYAN}.gemini/roles/*.md${NC} files.
+    ${YELLOW}Example:${NC} -r reviewer, -r security, -r planner
+    Run with an invalid role name to see all available roles.
 
 ${BLUE}TEMPLATES:${NC}
     ${YELLOW}feature${NC}     - Pre-implementation analysis for new features
@@ -584,21 +549,22 @@ fi
 
 # 2. Add role system prompt if specified
 if [ -n "$ROLE" ]; then
-    ROLE_CONTENT=$(get_role "$ROLE")
+    ROLE_CONTENT=$(get_role "$ROLE" || true)
     if [ -n "$ROLE_CONTENT" ]; then
         FULL_PROMPT="${FULL_PROMPT}**Your Role**: ${ROLE_CONTENT}
 
 "
     else
-        # List available custom roles
-        CUSTOM_ROLES=""
+        # List available roles from .gemini/roles/
+        AVAILABLE_ROLES=""
         if [ -d ".gemini/roles" ]; then
-            CUSTOM_ROLES=$(ls -1 .gemini/roles/*.md 2>/dev/null | xargs -I {} basename {} .md | tr '\n' ', ' | sed 's/,$//')
+            AVAILABLE_ROLES=$(ls -1 .gemini/roles/*.md 2>/dev/null | xargs -I {} basename {} .md | tr '\n' ', ' | sed 's/,$//')
         fi
         echo -e "${RED}Error: Unknown role '$ROLE'.${NC}"
-        echo -e "${YELLOW}Built-in roles: reviewer, planner, explainer, debugger${NC}"
-        if [ -n "$CUSTOM_ROLES" ]; then
-            echo -e "${YELLOW}Custom roles: $CUSTOM_ROLES${NC}"
+        if [ -n "$AVAILABLE_ROLES" ]; then
+            echo -e "${YELLOW}Available roles: $AVAILABLE_ROLES${NC}"
+        else
+            echo -e "${YELLOW}No roles found. Create roles in .gemini/roles/*.md${NC}"
         fi
         exit 1
     fi
