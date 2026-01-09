@@ -515,6 +515,16 @@ if [ "$DRY_RUN" = false ] && ! command -v gemini &> /dev/null; then
     exit 1
 fi
 
+# Check if jq is available (required for JSON handling)
+if [ "$DRY_RUN" = false ] && ! command -v jq &> /dev/null; then
+    echo -e "${RED}Error: jq is required but not found.${NC}"
+    echo -e "${YELLOW}Installation:${NC}"
+    echo -e "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install jq"
+    echo -e "  ${CYAN}macOS:${NC} brew install jq"
+    echo -e "  ${CYAN}Windows (Git Bash):${NC} Download from https://stedolan.github.io/jq/download/"
+    exit 1
+fi
+
 # Build the base command (model added during execution for fallback support)
 BASE_CMD="gemini"
 
@@ -606,18 +616,10 @@ fi
 if [ -n "$CHAT_SESSION" ]; then
     mkdir -p "$HISTORY_DIR"
     HIST_FILE="$HISTORY_DIR/${CHAT_SESSION}.json"
-    
+
     if [ -f "$HIST_FILE" ]; then
-        # Check if jq is installed for proper JSON parsing
-        if command -v jq &> /dev/null; then
-            # Format history from JSON structure
-            HISTORY_CONTENT=$(jq -r '.[] | "User: \(.user)\nGemini: \(.gemini)\n---"' "$HIST_FILE")
-        else
-            # Simple fallback if jq is missing (assumes simple structure or pure text log)
-            # Warning: This is brittle. Users should install jq.
-             echo -e "${YELLOW}⚠ 'jq' not found. Chat history might be parsed incorrectly.${NC}" >&2
-             HISTORY_CONTENT=$(cat "$HIST_FILE")
-        fi
+        # Format history from JSON structure using jq (required dependency)
+        HISTORY_CONTENT=$(jq -r '.[] | "User: \(.user)\nGemini: \(.gemini)\n---"' "$HIST_FILE")
 
         if [ -n "$HISTORY_CONTENT" ]; then
             FULL_PROMPT="${FULL_PROMPT}
@@ -921,28 +923,19 @@ fi
 if [ -n "$CHAT_SESSION" ] && [ $EXIT_CODE -eq 0 ]; then
     mkdir -p "$HISTORY_DIR"
     HIST_FILE="$HISTORY_DIR/${CHAT_SESSION}.json"
-    
-    # Create valid JSON entry
-    # Escape quotes and backslashes for JSON safety
-    SAFE_PROMPT=$(echo "$PROMPT" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
-    SAFE_RESPONSE=$(echo "$RESPONSE" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
-    
-    ENTRY="{\"user\": \"$SAFE_PROMPT\", \"gemini\": \"$SAFE_RESPONSE\", \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}"
-    
+
+    # Create JSON entry using jq for proper escaping
+    TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
     if [ ! -f "$HIST_FILE" ]; then
-        echo "[$ENTRY]" > "$HIST_FILE"
+        # Create new history file with first entry
+        jq -n --arg user "$PROMPT" --arg gemini "$RESPONSE" --arg ts "$TIMESTAMP" \
+            '[{user: $user, gemini: $gemini, timestamp: $ts}]' > "$HIST_FILE"
     else
-        # Remove closing bracket, add comma, add new entry, add closing bracket
-        # This is a bit hacky but works without jq
-        # If jq exists, use it for safer appending?
-        if command -v jq &> /dev/null; then
-             # Use a temporary file to avoid race conditions/corruption
-             jq ". + [$ENTRY]" "$HIST_FILE" > "${HIST_FILE}.tmp" && mv "${HIST_FILE}.tmp" "$HIST_FILE"
-        else
-             # Portable approach: use temp file (works on Linux, macOS, Windows/Git Bash)
-             head -n -1 "$HIST_FILE" > "${HIST_FILE}.tmp" && mv "${HIST_FILE}.tmp" "$HIST_FILE"
-             echo ",$ENTRY]" >> "$HIST_FILE"
-        fi
+        # Append to existing history file
+        jq --arg user "$PROMPT" --arg gemini "$RESPONSE" --arg ts "$TIMESTAMP" \
+            '. + [{user: $user, gemini: $gemini, timestamp: $ts}]' "$HIST_FILE" > "${HIST_FILE}.tmp" \
+            && mv "${HIST_FILE}.tmp" "$HIST_FILE"
     fi
     [ "$VERBOSE" = true ] && echo -e "${CYAN}💾 Chat history saved to $CHAT_SESSION${NC}" >&2
 fi
