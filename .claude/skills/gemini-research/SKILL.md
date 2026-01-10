@@ -29,25 +29,29 @@ You have access to Gemini CLI as a large-context research assistant. **Use Gemin
 ./skills/gemini.agent.wrapper.sh -d "@src/" "Your research question"
 ```
 
-## Available Roles
-
-### Built-in Roles
+## Available Roles (loaded from `.gemini/roles/`)
 | Role | Command | Use Case |
 |------|---------|----------|
 | `reviewer` | `-r reviewer` | Code quality, bugs, security |
 | `debugger` | `-r debugger` | Bug tracing, root cause analysis |
 | `planner` | `-r planner` | Architecture, implementation planning |
 | `security` | `-r security` | Security vulnerabilities audit |
-| `auditor` | `-r auditor --all-files` | Full codebase analysis |
+| `auditor` | `-r auditor` | Codebase-wide analysis |
+| `explainer` | `-r explainer` | Code explanation |
+| `migrator` | `-r migrator` | Migration planning |
+| `documenter` | `-r documenter` | Documentation generation |
+| `dependency-mapper` | `-r dependency-mapper` | Dependency analysis |
+| `onboarder` | `-r onboarder` | Onboarding guide |
 
-### Custom Roles (in `.gemini/roles/`)
-| Role | Command | Focus |
-|------|---------|-------|
-| `kotlin-expert` | `-r kotlin-expert` | Kotlin/Android, coroutines, Compose |
-| `typescript-expert` | `-r typescript-expert` | TypeScript, type safety |
-| `python-expert` | `-r python-expert` | Python async, type hints |
-| `api-designer` | `-r api-designer` | REST API design |
-| `database-expert` | `-r database-expert` | Query optimization |
+### Custom Roles
+Add custom roles in `.gemini/roles/<name>.md`. Examples:
+| Role | Focus |
+|------|-------|
+| `kotlin-expert` | Kotlin/Android, coroutines |
+| `typescript-expert` | TypeScript type safety |
+| `python-expert` | Python async, type hints |
+| `api-designer` | REST API design |
+| `database-expert` | Query optimization |
 
 ## Templates
 
