@@ -754,6 +754,13 @@ fi
 # 7. Add user prompt
 FULL_PROMPT="${FULL_PROMPT}${PROMPT}"
 
+# 7a. Handle --summarize (request compressed response) - must be before dry-run
+if [ "$SUMMARIZE_MODE" = true ]; then
+    FULL_PROMPT="${FULL_PROMPT}
+
+**IMPORTANT: Provide a COMPRESSED response. Be extremely concise. Use bullet points. Omit verbose explanations. Maximum 500 words.**"
+fi
+
 # 8. Input validation - prevent resource exhaustion
 PROMPT_LENGTH=${#FULL_PROMPT}
 if [ $PROMPT_LENGTH -gt $MAX_PROMPT_LENGTH ]; then
@@ -841,12 +848,7 @@ if [ "$CONTEXT_CHECK" = true ]; then
     echo "$CURRENT_HASH" > "$CONTEXT_HASH_FILE"
 fi
 
-# 11. Handle --summarize (request compressed response)
-if [ "$SUMMARIZE_MODE" = true ]; then
-    FULL_PROMPT="${FULL_PROMPT}
-
-**IMPORTANT: Provide a COMPRESSED response. Be extremely concise. Use bullet points. Omit verbose explanations. Maximum 500 words.**"
-fi
+# 11. (--summarize now handled before dry-run in step 7a)
 
 # Generate cache key from prompt hash
 CACHE_KEY=""

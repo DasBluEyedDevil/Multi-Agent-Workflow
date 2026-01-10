@@ -133,6 +133,16 @@ This repository has one purpose: **making Gemini CLI a seamless research subagen
 - **Claude implements** (based on Gemini's analysis)
 - **Gemini verifies** (post-implementation review)
 
+## Testing
+
+Run the test harness to verify wrapper functionality:
+
+```bash
+./tests/test-wrapper.sh
+```
+
+Tests use `--dry-run` to validate prompt construction without making API calls. All tests should pass before committing changes to the wrapper script.
+
 ## License
 
 MIT
