@@ -135,6 +135,7 @@ if [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ]; then
     echo "  ${GREEN}✓${NC} Update wrapper scripts (gemini.agent.wrapper.sh, gemini-parse.sh)"
     echo "  ${GREEN}✓${NC} Update role definitions (.gemini/roles/*.md)"
     echo "  ${GREEN}✓${NC} Update skill definition (SKILL.md)"
+    echo "  ${GREEN}✓${NC} Update slash commands (.claude/commands/gemini-*.md)"
     echo "  ${YELLOW}⚠${NC} Preserve your .claude/settings.json"
     echo "  ${YELLOW}⚠${NC} Preserve your .gemini/config (if exists)"
     echo "  ${YELLOW}⚠${NC} Preserve your custom templates"
@@ -152,6 +153,17 @@ if [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ]; then
         [ -d "$TARGET_DIR/.gemini/roles" ] && cp -r "$TARGET_DIR/.gemini/roles" "$BACKUP_DIR/"
         [ -f "$TARGET_DIR/.gemini/config" ] && cp "$TARGET_DIR/.gemini/config" "$BACKUP_DIR/"
         [ -f "$TARGET_DIR/GeminiContext.md" ] && cp "$TARGET_DIR/GeminiContext.md" "$BACKUP_DIR/"
+        if [ "$INSTALL_MODE" = "global" ]; then
+            if ls "$TARGET_DIR/commands/gemini-"*.md &> /dev/null; then
+                mkdir -p "$BACKUP_DIR/commands"
+                cp "$TARGET_DIR/commands/gemini-"*.md "$BACKUP_DIR/commands/"
+            fi
+        else
+            if ls "$TARGET_DIR/.claude/commands/gemini-"*.md &> /dev/null; then
+                mkdir -p "$BACKUP_DIR/commands"
+                cp "$TARGET_DIR/.claude/commands/gemini-"*.md "$BACKUP_DIR/commands/"
+            fi
+        fi
 
         echo -e "${GREEN}✓${NC} Backup created at: $BACKUP_DIR"
         echo ""
@@ -189,8 +201,10 @@ mkdir -p "$TARGET_DIR/.gemini/templates"
 
 if [ "$INSTALL_MODE" = "global" ]; then
     mkdir -p "$TARGET_DIR/skills/gemini-research"
+    mkdir -p "$TARGET_DIR/commands"
 else
     mkdir -p "$TARGET_DIR/.claude/skills/gemini-research"
+    mkdir -p "$TARGET_DIR/.claude/commands"
 fi
 
 # Copy wrapper scripts
@@ -231,6 +245,16 @@ else
     cp "$SCRIPT_DIR/.claude/skills/gemini-research/SKILL.md" "$TARGET_DIR/.claude/skills/gemini-research/"
 fi
 echo -e "  ${GREEN}✓${NC} Copied skill definition"
+
+# Copy slash commands (if provided)
+if ls "$SCRIPT_DIR/.claude/commands/"*.md &> /dev/null; then
+    if [ "$INSTALL_MODE" = "global" ]; then
+        cp "$SCRIPT_DIR/.claude/commands/"*.md "$TARGET_DIR/commands/"
+    else
+        cp "$SCRIPT_DIR/.claude/commands/"*.md "$TARGET_DIR/.claude/commands/"
+    fi
+    echo -e "  ${GREEN}✓${NC} Copied slash commands"
+fi
 
 # Handle settings.json (don't overwrite existing)
 if [ "$INSTALL_MODE" != "global" ]; then
