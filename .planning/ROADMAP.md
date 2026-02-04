@@ -12,7 +12,7 @@ This roadmap delivers a Claude Code plugin that integrates Kimi CLI as an autono
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Core Wrapper** - Bare Kimi CLI invocation with role selection and validation
+- [x] **Phase 1: Core Wrapper** - Bare Kimi CLI invocation with role selection and validation
 - [ ] **Phase 2: Agent Roles** - Full agent YAML files, system prompts, and tool access scoping
 - [ ] **Phase 3: Prompt Assembly** - Templates, git diff injection, and context file loading
 - [ ] **Phase 4: Developer Experience** - Thinking mode, dry-run, verbose, and help output
@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 1 plan
 
 Plans:
-- [ ] 01-01-PLAN.md -- Complete wrapper script with CLI validation, arg parsing, role resolution, invocation, and smoke tests
+- [x] 01-01-PLAN.md -- Complete wrapper script with CLI validation, arg parsing, role resolution, invocation, and smoke tests
 
 ### Phase 2: Agent Roles
 **Goal**: Users can delegate to specialized Kimi agents -- reviewers that only read, debuggers that can write and execute -- each with structured output
@@ -122,7 +122,7 @@ Note: Phase 3 (Prompt Assembly) depends only on Phase 1 and can be planned in pa
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Wrapper | 0/1 | Planned | - |
+| 1. Core Wrapper | 1/1 | Complete | 2026-02-04 |
 | 2. Agent Roles | 0/TBD | Not started | - |
 | 3. Prompt Assembly | 0/TBD | Not started | - |
 | 4. Developer Experience | 0/TBD | Not started | - |
