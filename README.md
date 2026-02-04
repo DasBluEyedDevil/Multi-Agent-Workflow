@@ -1,15 +1,15 @@
-# Multi-Agent-Workflow
+# Climi
 
-**Gemini CLI as a Research Subagent for Claude Code**
+**Kimi CLI as a Research Subagent for Claude Code**
 
-Leverage Gemini's 1M+ token context window for large-scale code analysis while Claude handles implementation. Division of labor: **Gemini reads, Claude writes**.
+Leverage Kimi Code 2.5's 1M+ token context window for large-scale code analysis while Claude handles implementation. Division of labor: **Kimi reads, Claude writes**.
 
 ## Quick Start
 
 ```bash
 # 1. Clone and install
 git clone <repo-url>
-cd Multi-Agent-Workflow
+cd Climi
 ./install.sh
 
 # 2. Choose installation type:
@@ -39,7 +39,7 @@ Run `./install.sh` again. The installer detects existing installations and:
 
 | Dependency | Required | Installation |
 |------------|----------|--------------|
-| **Gemini CLI** | Yes | [ai.google.dev/gemini-api/docs/cli](https://ai.google.dev/gemini-api/docs/cli) |
+| **Kimi CLI** | Yes | Kimi CLI with Kimi Code 2.5 support |
 | **jq** | Yes | `brew install jq` / `apt install jq` / [stedolan.github.io/jq](https://stedolan.github.io/jq/) |
 | **git** | Optional | For `--diff` feature |
 
@@ -47,7 +47,7 @@ Run `./install.sh` again. The installer detects existing installations and:
 
 ```
 ┌─────────────────┐                    ┌─────────────────┐
-│   Claude Code   │                    │   Gemini CLI    │
+│   Claude Code   │                    │    Kimi CLI     │
 │  (The Hands)    │                    │   (The Eyes)    │
 ├─────────────────┤                    ├─────────────────┤
 │ • Writes code   │  1. Research       │ • 1M+ tokens    │
@@ -61,9 +61,9 @@ Run `./install.sh` again. The installer detects existing installations and:
 ```
 
 **Workflow Pattern:**
-1. **Research** → Gemini analyzes codebase
+1. **Research** → Kimi analyzes codebase
 2. **Implement** → Claude writes code based on analysis
-3. **Verify** → Gemini reviews changes
+3. **Verify** → Kimi reviews changes
 
 ## Usage
 
@@ -129,7 +129,7 @@ CORE OPTIONS:
     -d, --dir DIRS         Directories to include (@src/ @lib/)
     -r, --role ROLE        Use predefined role
     -t, --template TMPL    Use query template
-    -m, --model MODEL      Specify model (default: gemini-3-pro-preview)
+    -m, --model MODEL      Specify model (default: kimi-code-2.5)
     --no-fallback          Disable automatic fallback model
 
 CONTEXT OPTIONS:
@@ -162,7 +162,7 @@ HELP:
 
 ## Response Format
 
-All Gemini responses follow a structured format for easy parsing:
+All Kimi responses follow a structured format for easy parsing:
 
 ```markdown
 ## SUMMARY
@@ -194,7 +194,7 @@ Parse responses programmatically:
 ## File Structure
 
 ```
-Multi-Agent-Workflow/
+Climi/
 ├── install.sh                    # Automated installer
 ├── uninstall.sh                  # Uninstaller
 ├── GeminiContext.md              # Auto-injected into every query
@@ -232,7 +232,7 @@ Copy `.gemini/config.example` to `.gemini/config` to set defaults:
 ```bash
 # .gemini/config
 VERBOSE=false
-MODEL="gemini-3-pro-preview"
+MODEL="kimi-code-2.5"
 MAX_RETRIES=3
 CACHE_TTL=86400  # 24 hours
 SAVE_LAST_RESPONSE=true
@@ -250,12 +250,12 @@ The `.claude/settings.json` includes intelligent hooks:
     "UserPromptSubmit": [
       {
         "matcher": "(?i)(review|analyze|trace|debug|security|audit|architecture)",
-        "prompt": "Consider using Gemini Research for analysis..."
+        "prompt": "Consider using Kimi Research for analysis..."
       }
     ],
     "Stop": [
       {
-        "prompt": "Consider verifying changes with Gemini..."
+        "prompt": "Consider verifying changes with Kimi..."
       }
     ]
   }
@@ -267,7 +267,7 @@ Hooks trigger only on relevant requests (review, analyze, debug, etc.) to reduce
 ### Skill Definition
 
 The skill at `.claude/skills/gemini-research/SKILL.md` teaches Claude:
-- **When** to use Gemini (files >100 lines, multi-file analysis)
+- **When** to use Kimi (files >100 lines, multi-file analysis)
 - **How** to invoke the wrapper
 - **What** roles and templates are available
 - **How** to interpret structured responses
@@ -300,7 +300,7 @@ Automatic retry with exponential backoff (2s, 4s, 8s) on API failures. Configura
 Responses are cached by model+prompt hash. Cache expires after 24 hours by default. Use `--cache-ttl SECONDS` to customize.
 
 ### Model Fallback
-If `gemini-3-pro-preview` fails, automatically falls back to `gemini-3-flash-preview` unless `--no-fallback` is specified.
+If `kimi-code-2.5` fails, automatically falls back to an alternative model unless `--no-fallback` is specified.
 
 ### Cross-Platform
 Works on Linux, macOS, and Windows (Git Bash/WSL). Handles platform differences in `stat`, `sed`, and line endings.
@@ -340,13 +340,13 @@ Use with `-t my-template`.
 
 ## Troubleshooting
 
-**"gemini CLI not found"**
+**"kimi CLI not found"**
 ```bash
 # Verify installation
-gemini --version
+kimi --version
 
 # Check PATH
-which gemini
+which kimi
 ```
 
 **"jq is required but not found"**
