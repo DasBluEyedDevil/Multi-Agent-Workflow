@@ -2,11 +2,11 @@
 
 ## What This Is
 
-A Claude Code plugin that integrates Kimi CLI (Kimi Code) as a "context companion" for large-scale code analysis. Kimi reads and analyzes code ("The Eyes"), Claude implements ("The Hands"). Replaces a previous Gemini CLI integration with a fresh design that leverages Kimi CLI's native agent system, delivering a cleaner, more capable workflow.
+A Claude Code plugin that integrates Kimi CLI (Kimi Code) as a general-purpose research & development subagent. Claude serves as the Architect and coordinator — deciding strategy, delegating work, and reviewing results. Kimi serves as the autonomous R&D agent — researching, analyzing, writing code, running commands, and executing any delegated task. Replaces a previous Gemini CLI integration (which was limited to read-only analysis) with a broader delegation model powered by Kimi CLI's native agent system.
 
 ## Core Value
 
-Claude Code users can delegate large-context code analysis to Kimi K2.5 via simple slash commands and get structured, actionable intelligence back — without leaving their Claude Code session.
+Claude Code users can delegate any R&D task to Kimi K2.5 via simple slash commands — research, code analysis, implementation, debugging, refactoring — while Claude stays in the architect seat coordinating the work.
 
 ## Requirements
 
@@ -30,7 +30,8 @@ Claude Code users can delegate large-context code analysis to Kimi K2.5 via simp
 - [ ] Installer script that checks for `kimi` CLI, installs agent files, slash commands, and context file
 - [ ] Uninstaller script that cleanly removes all installed components
 - [ ] PowerShell shim (`kimi.ps1`) for Windows users running from PowerShell
-- [ ] Agent files for all 15 roles: reviewer, debugger, planner, security, auditor, explainer, migrator, documenter, dependency-mapper, onboarder, api-designer, database-expert, kotlin-expert, typescript-expert, python-expert
+- [ ] Agent files for roles covering both analysis AND action: reviewer, debugger, planner, security, auditor, explainer, migrator, documenter, dependency-mapper, onboarder, api-designer, database-expert, kotlin-expert, typescript-expert, python-expert
+- [ ] Roles grant appropriate tool access: analysis roles get read-only tools, action roles get full tools (shell, file write, etc.)
 - [ ] CLAUDE.md section template for users to add Kimi integration instructions to their projects
 - [ ] README and documentation suitable for public release
 
@@ -69,7 +70,12 @@ agent:
     - "kimi_cli.tools.shell:Shell"  # read-only roles don't need shell
 ```
 
-**Target audience:** Claude Code users who want a second AI for large-context code reading and analysis. Should be installable by someone who clones the repo and runs `install.sh`.
+**Delegation model:** This is NOT a read-only analysis tool. Kimi is a full R&D subagent:
+- **Analysis roles** (reviewer, auditor, security): Read-only, report findings back to Claude
+- **Action roles** (debugger, migrator, planner): Full tool access, can write code, run commands
+- Claude decides what to delegate, Kimi executes autonomously, Claude reviews the result
+
+**Target audience:** Claude Code users who want a second AI agent for delegated R&D work — research, analysis, implementation, debugging. Should be installable by someone who clones the repo and runs `install.sh`.
 
 ## Constraints
 
@@ -84,11 +90,12 @@ agent:
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Replace Gemini with Kimi | Better model (K2.5) + better CLI (native agents, --quiet mode) | — Pending |
+| Replace Gemini with Kimi | Better model (K2.5) + better CLI (native agents, --quiet mode) + broader delegation model | — Pending |
+| Kimi as R&D subagent, not just analyst | Previous Gemini integration was read-only "eyes"; Kimi should be a full R&D agent that Claude delegates any task to | — Pending |
 | Use --agent-file for roles | Cleaner than prompt injection, uses Kimi natively, each role is a YAML + markdown pair | — Pending |
 | Fresh approach over 1:1 port | Most Gemini wrapper features are handled natively by Kimi CLI; simpler wrapper is better | — Pending |
 | Minimal feature set | Roles, templates, diff injection, context file. Drop caching/chat/batch/estimation. | — Pending |
 | Published plugin quality | README, installer, clean code — others can use this | — Pending |
 
 ---
-*Last updated: 2026-02-04 after initialization*
+*Last updated: 2026-02-04 after initialization + reframing (Kimi as R&D subagent, not just analyst)*
