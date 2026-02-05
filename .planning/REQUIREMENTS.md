@@ -10,10 +10,10 @@
 - [ ] **WRAP-01**: Wrapper script (`kimi.agent.wrapper.sh`) invokes Kimi CLI in `--quiet` mode with `--agent-file` and `--prompt` flags
 - [ ] **WRAP-02**: Role selection via `-r <role>` flag maps to `.kimi/agents/<role>.yaml` file
 - [ ] **WRAP-03**: Two-tier role resolution: project `.kimi/agents/` first, then global install location
-- [ ] **WRAP-04**: Template system via `-t <template>` flag prepends template text to user prompt
-- [ ] **WRAP-05**: Built-in templates: feature, bug, verify, architecture, implement-ready, fix-ready
-- [ ] **WRAP-06**: Git diff injection via `--diff [TARGET]` captures `git diff` output and prepends to prompt
-- [ ] **WRAP-07**: Context file injection: auto-loads `KimiContext.md` or `.kimi/context.md` and prepends to prompt
+- [x] **WRAP-04**: Template system via `-t <template>` flag prepends template text to user prompt
+- [x] **WRAP-05**: Built-in templates: feature, bug, verify, architecture, implement-ready, fix-ready
+- [x] **WRAP-06**: Git diff injection via `--diff [TARGET]` captures `git diff` output and prepends to prompt
+- [x] **WRAP-07**: Context file injection: auto-loads `KimiContext.md` or `.kimi/context.md` and prepends to prompt
 - [ ] **WRAP-08**: Model selection pass-through via `-m <model>` flag
 - [ ] **WRAP-09**: Thinking mode pass-through via `--thinking` flag
 - [ ] **WRAP-10**: Working directory pass-through via `-w <path>` flag
@@ -106,10 +106,10 @@ Each role is a YAML agent file + markdown system prompt:
 | WRAP-01 | Phase 1 | Pending |
 | WRAP-02 | Phase 1 | Pending |
 | WRAP-03 | Phase 1 | Pending |
-| WRAP-04 | Phase 3 | Pending |
-| WRAP-05 | Phase 3 | Pending |
-| WRAP-06 | Phase 3 | Pending |
-| WRAP-07 | Phase 3 | Pending |
+| WRAP-04 | Phase 3 | Complete |
+| WRAP-05 | Phase 3 | Complete |
+| WRAP-06 | Phase 3 | Complete |
+| WRAP-07 | Phase 3 | Complete |
 | WRAP-08 | Phase 1 | Pending |
 | WRAP-09 | Phase 4 | Pending |
 | WRAP-10 | Phase 1 | Pending |
@@ -150,4 +150,4 @@ Each role is a YAML agent file + markdown system prompt:
 
 ---
 *Requirements defined: 2026-02-04*
-*Last updated: 2026-02-04 after Phase 2 completion*
+*Last updated: 2026-02-05 after Phase 3 completion*
