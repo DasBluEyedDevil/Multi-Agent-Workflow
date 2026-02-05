@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 10 of 11 (Enhanced SKILL.md)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-02-05 — Completed 10-03-PLAN.md
+Plan: 4 of 4 in current phase
+Status: Phase complete
+Last activity: 2026-02-05 — Completed 10-04-PLAN.md
 
-Progress: [█████████████████░░░░░░░░░░░░░░░░░░░░░░░] 43%
+Progress: [██████████████████░░░░░░░░░░░░░░░░░░░░░░] 45%
 
 ## Milestones
 
@@ -91,6 +91,11 @@ Key decisions carried forward:
 | 10-03 | Token estimate = characters / 4 | Industry-standard heuristic when exact count unavailable |
 | 10-03 | Multi-path script resolution | Enables wrapper to find dependencies from any directory |
 | 10-03 | Session persistence via --session flag | Kimi CLI maintains context across related delegations |
+| 10-04 | Keep existing structure and add new sections | Don't break v1.0 workflows, gradual adoption |
+| 10-04 | Make v2.0 features opt-in via flags | Users choose when to enable auto-model |
+| 10-04 | Include ASCII diagrams for visual decision flow | Visual representation aids understanding |
+| 10-04 | Add Troubleshooting section for common issues | Self-service problem resolution |
+| 10-04 | Document all environment variables and defaults | Complete configuration reference |
 
 ### Pending Todos
 
@@ -102,16 +107,17 @@ None - v2.0 planning in progress.
 
 ## Session Continuity
 
-Last session: 2026-02-05T18:15:08Z
-Stopped at: Completed 10-03-PLAN.md (Phase 10, Plan 3)
+Last session: 2026-02-05T18:18:00Z
+Stopped at: Completed 10-04-PLAN.md (Phase 10, Plan 4)
 Resume file: None
 
-**Resumption notes:** Phase 10 (Enhanced SKILL.md) **IN PROGRESS**. Plans 1-3 complete:
+**Resumption notes:** Phase 10 (Enhanced SKILL.md) **COMPLETE**. All 4 plans done:
 - 10-01: Configuration and Classification ✓ (model-rules.json, task-classifier.sh)
 - 10-02: Model Selection Engine ✓ (kimi-model-selector.sh with confidence scoring)
 - 10-03: Cost Estimation and Integration ✓ (kimi-cost-estimator.sh, enhanced wrapper)
+- 10-04: SKILL.md Documentation ✓ (v2.0 patterns with auto-model, cost estimation, overrides)
 
-Next: Plan 10-04 - SKILL.md documentation update
+Next: Phase 11 or v2.0 completion
 
 ## Archives
 
