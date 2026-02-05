@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Multi-Agent-Workflow Installer
-# Installs Gemini Research and Kimi Delegation integrations for Claude Code
+# Installs Kimi Delegation integration for Claude Code
 
 set -euo pipefail
 
@@ -651,13 +651,6 @@ if ! check_jq; then
     MISSING_DEPS+=("jq")
 fi
 
-# Check for gemini CLI (optional - for Gemini integration)
-if ! command -v gemini &> /dev/null; then
-    echo -e "  ${YELLOW}⚠${NC} gemini CLI not found (optional, for Gemini integration)"
-else
-    echo -e "  ${GREEN}✓${NC} gemini CLI found"
-fi
-
 # Check for kimi CLI (required for Kimi integration)
 if KIMI_BIN=$(find_kimi); then
     check_kimi_version "$KIMI_BIN"
@@ -756,23 +749,16 @@ echo ""
 # Detect Existing Installation
 # ═══════════════════════════════════════════════════════════
 
-EXISTING_GEMINI=false
 EXISTING_KIMI=false
-
-# Detect Gemini installation
-if [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ]; then
-    EXISTING_GEMINI=true
-fi
 
 # Detect Kimi installation
 if [ -f "$TARGET_DIR/skills/kimi.agent.wrapper.sh" ]; then
     EXISTING_KIMI=true
 fi
 
-if [ "$EXISTING_GEMINI" = true ] || [ "$EXISTING_KIMI" = true ]; then
+if [ "$EXISTING_KIMI" = true ]; then
     echo -e "${YELLOW}Existing installation detected!${NC}"
-    [ "$EXISTING_GEMINI" = true ] && echo -e "  ${CYAN}•${NC} Gemini integration found"
-    [ "$EXISTING_KIMI" = true ] && echo -e "  ${CYAN}•${NC} Kimi integration found"
+    echo -e "  ${CYAN}•${NC} Kimi integration found"
     echo ""
     echo "  This will:"
     echo "  ${GREEN}✓${NC} Update wrapper scripts"
@@ -791,14 +777,6 @@ if [ "$EXISTING_GEMINI" = true ] || [ "$EXISTING_KIMI" = true ]; then
             BACKUP_DIR="$TARGET_DIR/.multi-agent-backup-$(date +%Y%m%d-%H%M%S)"
             mkdir -p "$BACKUP_DIR"
 
-            # Backup Gemini files
-            [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ] && cp "$TARGET_DIR/skills/gemini.agent.wrapper.sh" "$BACKUP_DIR/"
-            [ -f "$TARGET_DIR/skills/gemini-parse.sh" ] && cp "$TARGET_DIR/skills/gemini-parse.sh" "$BACKUP_DIR/"
-            [ -f "$TARGET_DIR/skills/gemini.ps1" ] && cp "$TARGET_DIR/skills/gemini.ps1" "$BACKUP_DIR/"
-            [ -d "$TARGET_DIR/.gemini/roles" ] && cp -r "$TARGET_DIR/.gemini/roles" "$BACKUP_DIR/"
-            [ -f "$TARGET_DIR/.gemini/config" ] && cp "$TARGET_DIR/.gemini/config" "$BACKUP_DIR/"
-            [ -f "$TARGET_DIR/GeminiContext.md" ] && cp "$TARGET_DIR/GeminiContext.md" "$BACKUP_DIR/"
-            
             # Backup Kimi files
             [ -f "$TARGET_DIR/skills/kimi.agent.wrapper.sh" ] && cp "$TARGET_DIR/skills/kimi.agent.wrapper.sh" "$BACKUP_DIR/"
             [ -d "$TARGET_DIR/.kimi/agents" ] && cp -r "$TARGET_DIR/.kimi/agents" "$BACKUP_DIR/"
@@ -826,11 +804,11 @@ fi
 
 # Confirm (unless force mode)
 if [ "$FORCE_MODE" = false ]; then
-    if [ "$EXISTING_GEMINI" = true ] || [ "$EXISTING_KIMI" = true ]; then
-        read -p "Proceed with upgrade? (Y/n) " -n 1 -r
-    else
-        read -p "Proceed with installation? (Y/n) " -n 1 -r
-    fi
+if [ "$EXISTING_KIMI" = true ]; then
+    read -p "Proceed with upgrade? (Y/n) " -n 1 -r
+else
+    read -p "Proceed with installation? (Y/n) " -n 1 -r
+fi
     echo
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         echo "Installation cancelled."
@@ -844,79 +822,24 @@ echo ""
 # Installation
 # ═══════════════════════════════════════════════════════════
 
-if [ "$EXISTING_GEMINI" = true ] || [ "$EXISTING_KIMI" = true ]; then
+if [ "$EXISTING_KIMI" = true ]; then
     echo -e "${BLUE}Upgrading files...${NC}"
 else
     echo -e "${BLUE}Installing files...${NC}"
 fi
-
-# Create directories for Gemini
-mkdir -p "$TARGET_DIR/skills"
-mkdir -p "$TARGET_DIR/.gemini/roles"
-mkdir -p "$TARGET_DIR/.gemini/templates"
 
 # Create directories for Kimi
 mkdir -p "$TARGET_DIR/.kimi/agents"
 mkdir -p "$TARGET_DIR/.kimi/templates"
 
 if [ "$INSTALL_MODE" = "global" ]; then
-    mkdir -p "$TARGET_DIR/skills/gemini-research"
     mkdir -p "$TARGET_DIR/skills/kimi-delegation"
     mkdir -p "$TARGET_DIR/commands"
     mkdir -p "$TARGET_DIR/commands/kimi"
 else
-    mkdir -p "$TARGET_DIR/.claude/skills/gemini-research"
     mkdir -p "$TARGET_DIR/.claude/skills/kimi-delegation"
     mkdir -p "$TARGET_DIR/.claude/commands"
     mkdir -p "$TARGET_DIR/.claude/commands/kimi"
-fi
-
-# -- Gemini Installation --
-
-# Copy Gemini wrapper scripts
-if [ -f "$SCRIPT_DIR/skills/gemini.agent.wrapper.sh" ]; then
-    cp "$SCRIPT_DIR/skills/gemini.agent.wrapper.sh" "$TARGET_DIR/skills/"
-    cp "$SCRIPT_DIR/skills/gemini-parse.sh" "$TARGET_DIR/skills/" 2>/dev/null || true
-    cp "$SCRIPT_DIR/skills/gemini.ps1" "$TARGET_DIR/skills/" 2>/dev/null || true
-    chmod +x "$TARGET_DIR/skills/gemini"*.sh 2>/dev/null || true
-    echo -e "  ${GREEN}✓${NC} Copied Gemini wrapper scripts"
-fi
-
-# Copy Gemini roles
-if [ -d "$SCRIPT_DIR/.gemini/roles" ] && ls "$SCRIPT_DIR/.gemini/roles/"*.md &> /dev/null 2>&1; then
-    cp "$SCRIPT_DIR/.gemini/roles/"*.md "$TARGET_DIR/.gemini/roles/"
-    echo -e "  ${GREEN}✓${NC} Copied Gemini roles ($(ls -1 "$SCRIPT_DIR/.gemini/roles/"*.md 2>/dev/null | wc -l) files)"
-fi
-
-# Copy Gemini templates (if any exist)
-if [ -d "$SCRIPT_DIR/.gemini/templates" ] && ls "$SCRIPT_DIR/.gemini/templates/"*.md &> /dev/null 2>&1; then
-    cp "$SCRIPT_DIR/.gemini/templates/"*.md "$TARGET_DIR/.gemini/templates/"
-    echo -e "  ${GREEN}✓${NC} Copied Gemini templates"
-fi
-
-# Copy Gemini config example (don't overwrite existing config)
-if [ -f "$SCRIPT_DIR/.gemini/config.example" ]; then
-    cp "$SCRIPT_DIR/.gemini/config.example" "$TARGET_DIR/.gemini/"
-    echo -e "  ${GREEN}✓${NC} Copied config.example"
-fi
-if [ -f "$TARGET_DIR/.gemini/config" ]; then
-    echo -e "  ${YELLOW}⚠${NC} Existing .gemini/config preserved"
-fi
-
-# Copy Gemini context file
-if [ -f "$SCRIPT_DIR/GeminiContext.md" ]; then
-    cp "$SCRIPT_DIR/GeminiContext.md" "$TARGET_DIR/"
-    echo -e "  ${GREEN}✓${NC} Copied GeminiContext.md"
-fi
-
-# Copy Gemini skill definition
-if [ -f "$SCRIPT_DIR/.claude/skills/gemini-research/SKILL.md" ]; then
-    if [ "$INSTALL_MODE" = "global" ]; then
-        cp "$SCRIPT_DIR/.claude/skills/gemini-research/SKILL.md" "$TARGET_DIR/skills/gemini-research/"
-    else
-        cp "$SCRIPT_DIR/.claude/skills/gemini-research/SKILL.md" "$TARGET_DIR/.claude/skills/gemini-research/"
-    fi
-    echo -e "  ${GREEN}✓${NC} Copied Gemini skill definition"
 fi
 
 # -- Kimi Installation --
@@ -1138,29 +1061,10 @@ else
     echo -e "  ${YELLOW}⚠${NC} Kimi verification inconclusive (kimi CLI may not be installed)"
 fi
 
-# Test Gemini wrapper
-if [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ]; then
-    if [ "$INSTALL_MODE" = "global" ]; then
-        GEMINI_TEST_OUTPUT=$("$HOME/.claude/skills/gemini.agent.wrapper.sh" --dry-run "test" 2>&1) || true
-    else
-        GEMINI_TEST_OUTPUT=$("$TARGET_DIR/skills/gemini.agent.wrapper.sh" --dry-run "test" 2>&1) || true
-    fi
-
-    if echo "$GEMINI_TEST_OUTPUT" | grep -q "DRY RUN"; then
-        echo -e "  ${GREEN}✓${NC} Gemini wrapper script works correctly"
-    else
-        echo -e "  ${YELLOW}⚠${NC} Gemini verification inconclusive"
-    fi
-fi
-
-echo ""
-
 # Component count
 COMPONENT_COUNT=0
 [ -f "$TARGET_DIR/skills/kimi.agent.wrapper.sh" ] && ((COMPONENT_COUNT++))
-[ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ] && ((COMPONENT_COUNT++))
 [ -d "$TARGET_DIR/.kimi/templates" ] && COMPONENT_COUNT=$((COMPONENT_COUNT + $(ls -1 "$TARGET_DIR/.kimi/templates/"*.md 2>/dev/null | wc -l)))
-[ -d "$TARGET_DIR/.gemini/roles" ] && COMPONENT_COUNT=$((COMPONENT_COUNT + $(ls -1 "$TARGET_DIR/.gemini/roles/"*.md 2>/dev/null | wc -l)))
 [ -f "$HOME/.local/bin/kimi-mcp" ] && ((COMPONENT_COUNT++))
 [ -f ".kimi/hooks.json" ] && ((COMPONENT_COUNT++))
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Multi-Agent-Workflow Uninstaller
-# Removes Gemini Research and Kimi Delegation integrations from Claude Code
+# Removes Kimi Delegation integration from Claude Code
 
 set -euo pipefail
 
@@ -66,18 +66,13 @@ echo ""
 # -- Check for existing installation -----------------------------------------
 
 # Detect what's installed
-FOUND_GEMINI=false
 FOUND_KIMI=false
-
-if [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ]; then
-    FOUND_GEMINI=true
-fi
 
 if [ -f "$TARGET_DIR/skills/kimi.agent.wrapper.sh" ]; then
     FOUND_KIMI=true
 fi
 
-if [ "$FOUND_GEMINI" = false ] && [ "$FOUND_KIMI" = false ]; then
+if [ "$FOUND_KIMI" = false ]; then
     echo -e "${YELLOW}No Multi-Agent-Workflow integration found at:${NC} $TARGET_DIR"
     echo ""
     echo "To specify a different location, use: uninstall.sh --target /path/to/dir"
@@ -85,8 +80,7 @@ if [ "$FOUND_GEMINI" = false ] && [ "$FOUND_KIMI" = false ]; then
 fi
 
 echo -e "${BLUE}Found installation at:${NC} $TARGET_DIR"
-[ "$FOUND_GEMINI" = true ] && echo -e "  ${CYAN}•${NC} Gemini integration"
-[ "$FOUND_KIMI" = true ] && echo -e "  ${CYAN}•${NC} Kimi integration"
+echo -e "  ${CYAN}•${NC} Kimi integration"
 echo ""
 
 # -- Interactive mode (select what to remove) --------------------------------
@@ -95,29 +89,18 @@ if [ "$DRY_RUN" = false ]; then
     echo -e "${BLUE}What would you like to uninstall?${NC}"
     echo ""
     echo "  1) ${RED}Everything${NC} - Remove all Multi-Agent-Workflow components"
-    [ "$FOUND_KIMI" = true ] && echo "  2) ${YELLOW}Kimi only${NC} - Remove Kimi integration, keep Gemini"
-    [ "$FOUND_GEMINI" = true ] && echo "  3) ${YELLOW}Gemini only${NC} - Remove Gemini integration, keep Kimi"
-    echo "  4) ${GREEN}Cancel${NC} - Exit without changes"
+    echo "  2) ${GREEN}Cancel${NC} - Exit without changes"
     echo ""
 
-    read -p "Choose [1/2/3/4]: " -n 1 -r UNINSTALL_TYPE
+    read -p "Choose [1/2]: " -n 1 -r UNINSTALL_TYPE
     echo ""
     echo ""
 
     case "$UNINSTALL_TYPE" in
         1)
-            REMOVE_GEMINI=true
             REMOVE_KIMI=true
             ;;
         2)
-            REMOVE_GEMINI=false
-            REMOVE_KIMI=true
-            ;;
-        3)
-            REMOVE_GEMINI=true
-            REMOVE_KIMI=false
-            ;;
-        4)
             echo "Uninstall cancelled."
             exit 0
             ;;
@@ -128,7 +111,6 @@ if [ "$DRY_RUN" = false ]; then
     esac
 else
     # Dry-run removes everything for preview
-    REMOVE_GEMINI=true
     REMOVE_KIMI=true
 fi
 
@@ -148,17 +130,6 @@ if [ "$REMOVE_KIMI" = true ]; then
     [ -d "$TARGET_DIR/.kimi/agents" ] && ITEMS_TO_REMOVE+=("$TARGET_DIR/.kimi/agents/")
     [ -d "$TARGET_DIR/.kimi/templates" ] && ITEMS_TO_REMOVE+=("$TARGET_DIR/.kimi/templates/")
     [ -f "$TARGET_DIR/.kimi-version" ] && ITEMS_TO_REMOVE+=("$TARGET_DIR/.kimi-version")
-fi
-
-if [ "$REMOVE_GEMINI" = true ]; then
-    # Gemini components
-    [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ] && ITEMS_TO_REMOVE+=("$TARGET_DIR/skills/gemini.agent.wrapper.sh")
-    [ -f "$TARGET_DIR/skills/gemini-parse.sh" ] && ITEMS_TO_REMOVE+=("$TARGET_DIR/skills/gemini-parse.sh")
-    [ -f "$TARGET_DIR/skills/gemini.ps1" ] && ITEMS_TO_REMOVE+=("$TARGET_DIR/skills/gemini.ps1")
-    [ -d "$TARGET_DIR/skills/gemini-research" ] && ITEMS_TO_REMOVE+=("$TARGET_DIR/skills/gemini-research/")
-    [ -d "$TARGET_DIR/.claude/skills/gemini-research" ] && ITEMS_TO_REMOVE+=("$TARGET_DIR/.claude/skills/gemini-research/")
-    [ -d "$TARGET_DIR/.gemini" ] && ITEMS_TO_REMOVE+=("$TARGET_DIR/.gemini/")
-    [ -f "$TARGET_DIR/GeminiContext.md" ] && ITEMS_TO_REMOVE+=("$TARGET_DIR/GeminiContext.md")
 fi
 
 # Print items to remove
@@ -256,51 +227,6 @@ if [ "$REMOVE_KIMI" = true ]; then
     fi
 fi
 
-# Remove Gemini components
-if [ "$REMOVE_GEMINI" = true ]; then
-    if [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ]; then
-        rm "$TARGET_DIR/skills/gemini.agent.wrapper.sh"
-        echo -e "  ${GREEN}✓${NC} Removed gemini.agent.wrapper.sh"
-        ((REMOVED_COUNT++))
-    fi
-    
-    if [ -f "$TARGET_DIR/skills/gemini-parse.sh" ]; then
-        rm "$TARGET_DIR/skills/gemini-parse.sh"
-        echo -e "  ${GREEN}✓${NC} Removed gemini-parse.sh"
-        ((REMOVED_COUNT++))
-    fi
-    
-    if [ -f "$TARGET_DIR/skills/gemini.ps1" ]; then
-        rm "$TARGET_DIR/skills/gemini.ps1"
-        echo -e "  ${GREEN}✓${NC} Removed gemini.ps1"
-        ((REMOVED_COUNT++))
-    fi
-    
-    if [ -d "$TARGET_DIR/skills/gemini-research" ]; then
-        rm -rf "$TARGET_DIR/skills/gemini-research"
-        echo -e "  ${GREEN}✓${NC} Removed skills/gemini-research/"
-        ((REMOVED_COUNT++))
-    fi
-    
-    if [ -d "$TARGET_DIR/.claude/skills/gemini-research" ]; then
-        rm -rf "$TARGET_DIR/.claude/skills/gemini-research"
-        echo -e "  ${GREEN}✓${NC} Removed .claude/skills/gemini-research/"
-        ((REMOVED_COUNT++))
-    fi
-    
-    if [ -d "$TARGET_DIR/.gemini" ]; then
-        rm -rf "$TARGET_DIR/.gemini"
-        echo -e "  ${GREEN}✓${NC} Removed .gemini/"
-        ((REMOVED_COUNT++))
-    fi
-    
-    if [ -f "$TARGET_DIR/GeminiContext.md" ]; then
-        rm "$TARGET_DIR/GeminiContext.md"
-        echo -e "  ${GREEN}✓${NC} Removed GeminiContext.md"
-        ((REMOVED_COUNT++))
-    fi
-fi
-
 # Clean up empty skills directory (only if nothing else is in it)
 if [ -d "$TARGET_DIR/skills" ] && [ -z "$(ls -A "$TARGET_DIR/skills" 2>/dev/null)" ]; then
     rmdir "$TARGET_DIR/skills"
@@ -311,6 +237,6 @@ echo ""
 echo -e "${GREEN}Uninstall complete. Removed ${REMOVED_COUNT} components.${NC}"
 echo ""
 echo -e "${YELLOW}Note:${NC} You may want to manually:"
-echo "  - Remove Kimi/Gemini sections from ~/.claude/CLAUDE.md"
+echo "  - Remove Kimi sections from ~/.claude/CLAUDE.md"
 echo "  - Remove related hooks from .claude/settings.json"
 echo ""
