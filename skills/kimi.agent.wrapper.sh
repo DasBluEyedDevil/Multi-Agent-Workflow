@@ -5,7 +5,8 @@
 #   -r, --role ROLE      Agent role (maps to .kimi/agents/ROLE.yaml)
 #   -m, --model MODEL    Kimi model (default: kimi-for-coding)
 #   -w, --work-dir PATH  Working directory for Kimi
-#   -h, --help           Show this help
+#   -t, --template TPL   Template to prepend (maps to .kimi/templates/TPL.md)
+  -h, --help           Show this help
 # Prompt can also be piped via stdin.
 
 set -euo pipefail
@@ -20,6 +21,7 @@ readonly EXIT_CLI_NOT_FOUND=10
 readonly EXIT_BAD_ARGS=11
 readonly EXIT_ROLE_NOT_FOUND=12
 readonly EXIT_NO_PROMPT=13
+readonly EXIT_TEMPLATE_NOT_FOUND=14
 
 # -- Defaults ----------------------------------------------------------------
 DEFAULT_MODEL="kimi-for-coding"
@@ -29,12 +31,43 @@ MODEL="$DEFAULT_MODEL"
 WORK_DIR=""
 PROMPT=""
 AGENT_FILE=""
+DIFF_MODE=false
+TEMPLATE=""
 PASSTHROUGH_ARGS=()
 
 # -- Utility functions -------------------------------------------------------
 
 die() { echo "Error: $1" >&2; exit "${2:-1}"; }
 warn() { echo "Warning: $1" >&2; }
+
+# Capture git diff output for injection into prompt context
+capture_git_diff() {
+    local work_dir="${1:-.}"
+    local diff_output=""
+    
+    # Check if git is available
+    if ! command -v git >/dev/null 2>&1; then
+        warn "git not found, skipping diff injection"
+        return 1
+    fi
+    
+    # Check if in a git repo
+    if ! git -C "$work_dir" rev-parse --git-dir >/dev/null 2>&1; then
+        warn "Not a git repository, skipping diff injection"
+        return 1
+    fi
+    
+    # Capture diff: staged + unstaged vs HEAD
+    diff_output=$(git -C "$work_dir" diff HEAD 2>/dev/null) || {
+        warn "Could not capture git diff"
+        return 1
+    }
+    
+    # Only output if there are changes
+    if [[ -n "$diff_output" ]]; then
+        printf '## Git Changes (diff vs HEAD)\n\n```diff\n%s\n```\n' "$diff_output"
+    fi
+}
 
 # Detect OS: returns "macos", "linux", "windows", or "unknown"
 detect_os() {
@@ -173,6 +206,56 @@ die_role_not_found() {
         echo "No agent files found in ${work}/.kimi/agents/ or ${SCRIPT_DIR}/../.kimi/agents/" >&2
     fi
     exit "$EXIT_ROLE_NOT_FOUND"
+
+# Two-tier template resolution: project-local first, then global
+resolve_template() {
+    local template_name="$1"
+    local work="${WORK_DIR:-.}"
+    local project_template="${work}/.kimi/templates/${template_name}.md"
+    local global_template="${SCRIPT_DIR}/../.kimi/templates/${template_name}.md"
+    if [[ -f "$project_template" ]]; then
+        echo "$project_template"
+        return 0
+    elif [[ -f "$global_template" ]]; then
+        echo "$global_template"
+        return 0
+    fi
+    return 1
+}
+
+# Enumerate available templates from both directories (comma-separated)
+list_available_templates() {
+    local templates=()
+    local work="${WORK_DIR:-.}"
+    if [[ -d "${work}/.kimi/templates" ]]; then
+        local f
+        for f in "${work}/.kimi/templates"/*.md; do
+            [[ -f "$f" ]] && templates+=("$(basename "$f" .md)")
+        done
+    fi
+    if [[ -d "${SCRIPT_DIR}/../.kimi/templates" ]]; then
+        local f
+        for f in "${SCRIPT_DIR}/../.kimi/templates"/*.md; do
+            [[ -f "$f" ]] && templates+=("$(basename "$f" .md)")
+        done
+    fi
+    if [[ ${#templates[@]} -eq 0 ]]; then return 0; fi
+    printf '%s\n' "${templates[@]}" | sort -u | paste -sd ',' - | sed 's/,/, /g'
+}
+
+# Error with available templates list, then exit
+die_template_not_found() {
+    local template_name="$1"
+    echo "Error: template '$template_name' not found." >&2
+    local available
+    available=$(list_available_templates)
+    if [[ -n "$available" ]]; then
+        echo "Available templates: $available" >&2
+    else
+        echo "No template files found in ${work}/.kimi/templates/ or ${SCRIPT_DIR}/../.kimi/templates/" >&2
+    fi
+    exit "$EXIT_TEMPLATE_NOT_FOUND"
+}
 }
 
 # -- Usage -------------------------------------------------------------------
@@ -185,6 +268,8 @@ Options:
   -r, --role ROLE      Agent role (maps to .kimi/agents/ROLE.yaml)
   -m, --model MODEL    Kimi model (default: kimi-for-coding)
   -w, --work-dir PATH  Working directory for Kimi
+  --diff               Include git diff (HEAD vs working tree) in prompt context
+  -t, --template TPL   Template to prepend (maps to .kimi/templates/TPL.md)
   -h, --help           Show this help
 
 Prompt can also be piped via stdin.
@@ -199,6 +284,9 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -r|--role)
             [[ -z "${2:-}" ]] && die "Option $1 requires an argument" "$EXIT_BAD_ARGS"
+        -t|--template)
+            [[ -z "${2:-}" ]] && die "Option $1 requires an argument" "$EXIT_BAD_ARGS"
+            TEMPLATE="$2"; shift 2 ;;
             ROLE="$2"; shift 2 ;;
         -m|--model)
             [[ -z "${2:-}" ]] && die "Option $1 requires an argument" "$EXIT_BAD_ARGS"
@@ -206,6 +294,8 @@ while [[ $# -gt 0 ]]; do
         -w|--work-dir)
             [[ -z "${2:-}" ]] && die "Option $1 requires an argument" "$EXIT_BAD_ARGS"
             WORK_DIR="$2"; shift 2 ;;
+        --diff)
+            DIFF_MODE=true; shift ;;
         -h|--help)
             usage ;;
         --)
