@@ -466,6 +466,12 @@ if [ -d "$SCRIPT_DIR/.kimi/agents" ] && ls "$SCRIPT_DIR/.kimi/agents/"*.yaml &> 
     echo -e "  ${GREEN}✓${NC} Copied Kimi agents ($(ls -1 "$SCRIPT_DIR/.kimi/agents/"*.yaml 2>/dev/null | wc -l) files)"
 fi
 
+# Copy Kimi agent system prompts (MD files)
+if [ -d "$SCRIPT_DIR/.kimi/agents" ] && ls "$SCRIPT_DIR/.kimi/agents/"*.md &> /dev/null 2>&1; then
+    cp "$SCRIPT_DIR/.kimi/agents/"*.md "$TARGET_DIR/.kimi/agents/"
+    echo -e "  ${GREEN}✓${NC} Copied Kimi agent prompts ($(ls -1 "$SCRIPT_DIR/.kimi/agents/"*.md 2>/dev/null | wc -l) files)"
+fi
+
 # Copy Kimi templates
 if [ -d "$SCRIPT_DIR/.kimi/templates" ] && ls "$SCRIPT_DIR/.kimi/templates/"*.md &> /dev/null 2>&1; then
     cp "$SCRIPT_DIR/.kimi/templates/"*.md "$TARGET_DIR/.kimi/templates/"
