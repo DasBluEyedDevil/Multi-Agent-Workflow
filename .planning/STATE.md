@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 10 of 11 (Enhanced SKILL.md)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-05 — Completed 10-02-PLAN.md
+Last activity: 2026-02-05 — Completed 10-03-PLAN.md
 
-Progress: [██████████████░░░░░░░░░░░░░░░░░░░░░░░░░░] 40%
+Progress: [█████████████████░░░░░░░░░░░░░░░░░░░░░░░] 43%
 
 ## Milestones
 
@@ -87,6 +87,10 @@ Key decisions carried forward:
 | 10-02 | Confidence formula: 50 base + 20 (files agree) + 20 (task clear) + 10 (patterns match) | Multi-factor scoring reflects signal strength |
 | 10-02 | Tie-breaker defaults to K2 | Cost efficiency when signals are balanced |
 | 10-02 | KIMI_FORCE_MODEL takes absolute precedence | User control over automatic selection |
+| 10-03 | K2.5 cost multiplier = 1.5x | Research-derived cost ratio between models |
+| 10-03 | Token estimate = characters / 4 | Industry-standard heuristic when exact count unavailable |
+| 10-03 | Multi-path script resolution | Enables wrapper to find dependencies from any directory |
+| 10-03 | Session persistence via --session flag | Kimi CLI maintains context across related delegations |
 
 ### Pending Todos
 
@@ -98,15 +102,16 @@ None - v2.0 planning in progress.
 
 ## Session Continuity
 
-Last session: 2026-02-05T18:20:00Z
-Stopped at: Completed 10-02-PLAN.md (Phase 10, Plan 2)
+Last session: 2026-02-05T18:15:08Z
+Stopped at: Completed 10-03-PLAN.md (Phase 10, Plan 3)
 Resume file: None
 
-**Resumption notes:** Phase 10 (Enhanced SKILL.md) **IN PROGRESS**. Plans 1-2 complete:
+**Resumption notes:** Phase 10 (Enhanced SKILL.md) **IN PROGRESS**. Plans 1-3 complete:
 - 10-01: Configuration and Classification ✓ (model-rules.json, task-classifier.sh)
 - 10-02: Model Selection Engine ✓ (kimi-model-selector.sh with confidence scoring)
+- 10-03: Cost Estimation and Integration ✓ (kimi-cost-estimator.sh, enhanced wrapper)
 
-Next: Plan 10-03 - Integration with wrapper script
+Next: Plan 10-04 - SKILL.md documentation update
 
 ## Archives
 
