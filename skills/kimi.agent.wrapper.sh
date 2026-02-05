@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
 # kimi.agent.wrapper.sh -- Kimi CLI wrapper with role-based agent selection
 # All wrapper output goes to stderr; only Kimi's output goes to stdout.
+#
 # Usage: kimi.agent.wrapper.sh [OPTIONS] PROMPT
 #   -r, --role ROLE      Agent role (maps to .kimi/agents/ROLE.yaml)
 #   -m, --model MODEL    Kimi model (default: kimi-for-coding)
 #   -w, --work-dir PATH  Working directory for Kimi
 #   -t, --template TPL   Template to prepend (maps to .kimi/templates/TPL.md)
+#   --diff               Include git diff in prompt context
+#   --dry-run            Show constructed command without executing
+#   --verbose            Show wrapper debug output
 #   -h, --help           Show this help
+#
 # Prompt can also be piped via stdin.
+#
+# Pass-through flags: Unknown flags (like --thinking, --no-thinking, -y, --yolo)
+# are forwarded directly to the kimi CLI. This allows using any kimi CLI option
+# without wrapper changes. Example: --thinking enables deeper reasoning mode.
 
 set -euo pipefail
 
@@ -33,12 +42,19 @@ PROMPT=""
 AGENT_FILE=""
 DIFF_MODE=false
 TEMPLATE=""
+VERBOSE=false
+DRY_RUN=false
 PASSTHROUGH_ARGS=()
 
 # -- Utility functions -------------------------------------------------------
 
 die() { echo "Error: $1" >&2; exit "${2:-1}"; }
 warn() { echo "Warning: $1" >&2; }
+
+log_verbose() {
+    [[ "$VERBOSE" == "true" ]] || return 0
+    echo "[verbose] $*" >&2
+}
 
 # Capture git diff output for injection into prompt context
 capture_git_diff() {
@@ -62,6 +78,8 @@ capture_git_diff() {
         warn "Could not capture git diff"
         return 1
     }
+
+    log_verbose "Git diff captured: ${#diff_output} chars"
     
     # Only output if there are changes
     if [[ -n "$diff_output" ]]; then
@@ -224,6 +242,8 @@ load_context_file() {
         return 0
     fi
     
+    log_verbose "Context file loaded: $context_file"
+
     # Read and output the context file content
     context_content=$(cat "$context_file")
     if [[ -n "$context_content" ]]; then
@@ -357,6 +377,10 @@ while [[ $# -gt 0 ]]; do
             WORK_DIR="$2"; shift 2 ;;
         --diff)
             DIFF_MODE=true; shift ;;
+        --verbose)
+            VERBOSE=true; shift ;;
+        --dry-run)
+            DRY_RUN=true; shift ;;
         -h|--help)
             usage ;;
         --)
@@ -364,6 +388,8 @@ while [[ $# -gt 0 ]]; do
             [[ $# -gt 0 ]] && { PROMPT="$*"; shift $#; }
             ;;
         -*)
+            # Pass-through: Unknown flags go directly to kimi CLI
+            # This handles --thinking, --no-thinking, -y, --yolo, --print, etc.
             PASSTHROUGH_ARGS+=("$1")
             if [[ -n "${2:-}" && ! "${2:-}" =~ ^- ]]; then
                 PASSTHROUGH_ARGS+=("$2"); shift
@@ -388,6 +414,7 @@ fi
 
 # Step 1: Find kimi binary (dies with install instructions if not found)
 KIMI_BIN=$(find_kimi)
+log_verbose "Resolved kimi binary: $KIMI_BIN"
 
 # Step 2: Check version (warns if below minimum, continues anyway)
 check_version
@@ -400,6 +427,7 @@ if [[ -n "$ROLE" ]]; then
     fi
     AGENT_FILE="$resolved"
 fi
+log_verbose "Agent file: ${AGENT_FILE:-none}"
 
 # Step 4: Resolve template if specified and assemble prompt
 TEMPLATE_CONTENT=""
@@ -410,6 +438,9 @@ if [[ -n "$TEMPLATE" ]]; then
     fi
     TEMPLATE_CONTENT=$(cat "$template_path")
 fi
+log_verbose "Template: ${TEMPLATE:-none}"
+
+log_verbose "Model: $MODEL, Role: ${ROLE:-none}"
 
 # -- Command construction and invocation -------------------------------------
 
@@ -430,6 +461,7 @@ cmd+=("--model" "$MODEL")
 if [[ ${#PASSTHROUGH_ARGS[@]} -gt 0 ]]; then
     cmd+=("${PASSTHROUGH_ARGS[@]}")
 fi
+log_verbose "Passthrough args: ${PASSTHROUGH_ARGS[*]}"
 
 # Step 5: Capture context file and git diff content
 CONTEXT_SECTION=$(load_context_file "${WORK_DIR:-.}") || true
@@ -462,11 +494,35 @@ if [[ -n "$TEMPLATE_CONTENT" ]]; then
 ${ASSEMBLED_PROMPT}"
 fi
 
+log_verbose "Prompt length: ${#ASSEMBLED_PROMPT} chars"
+log_verbose "Dry-run mode: $DRY_RUN"
+
 # Add prompt as final argument
 cmd+=("--prompt" "$ASSEMBLED_PROMPT")
 
 # Emit machine-parseable header to stderr (Phase 5 Claude Code integration)
 echo "[kimi:${ROLE:-none}:${TEMPLATE:-none}:${MODEL}]" >&2
+
+# Dry-run mode: show command without executing
+if [[ "$DRY_RUN" == "true" ]]; then
+    echo "[DRY-RUN] Constructed command:" >&2
+    printf '  %q' "${cmd[0]}" >&2
+    for ((i=1; i<${#cmd[@]}; i++)); do
+        printf ' %q' "${cmd[$i]}" >&2
+    done
+    echo "" >&2
+    
+    # Show truncated prompt preview
+    if [[ ${#ASSEMBLED_PROMPT} -gt 200 ]]; then
+        echo "[DRY-RUN] Assembled prompt (${#ASSEMBLED_PROMPT} chars):" >&2
+        echo "  ${ASSEMBLED_PROMPT:0:200}..." >&2
+    else
+        echo "[DRY-RUN] Assembled prompt:" >&2
+        echo "  $ASSEMBLED_PROMPT" >&2
+    fi
+    
+    exit 0
+fi
 
 # Execute kimi and propagate its exit code
 kimi_exit=0
