@@ -231,7 +231,8 @@ hooks_run_analysis() {
                 arguments: {
                     prompt: $prompt,
                     files: $files,
-                    context: $context
+                    context: $context,
+                    auto_model: true
                 }
             }
         }')
@@ -296,7 +297,8 @@ hooks_run_implement() {
                 name: "kimi_implement",
                 arguments: {
                     prompt: $prompt,
-                    files: $files
+                    files: $files,
+                    auto_model: true
                 }
             }
         }')
