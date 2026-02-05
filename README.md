@@ -6,11 +6,20 @@
 
 ## Overview
 
-Integrate **Kimi K2.5** as a general-purpose R&D subagent for Claude Code. Kimi handles large-context code analysis, research, and investigation while Claude focuses on implementation. This division of labor leverages Kimi's massive context window for reading and Claude's precision for writing.
+Integrate **Kimi K2.5** as an autonomous R&D subagent for Claude Code. **Claude is the Brain** (architect, coordinator, reviewer) and **Kimi is the Hands** (developer, implementer, debugger). Claude designs and delegates; Kimi implements and executes.
+
+**Division of Labor:**
+
+| Claude (Brain) | Kimi (Hands) |
+|----------------|--------------|
+| Design & plan | Implement features |
+| Review & approve | Debug & fix bugs |
+| Coordinate work | Refactor code |
+| Make decisions | Run tests |
 
 **Key benefits:**
-- Delegate any R&D task to Kimi: code review, debugging, security audits, architecture analysis
-- 7 specialized agent roles with appropriate tool access (analysis = read-only, action = full access)
+- Delegate implementation work to Kimi while you focus on architecture
+- 7 specialized agent roles: 4 action roles (full tool access) + 3 analysis roles (read-only)
 - Template-based prompts for common workflows
 - Git diff injection for post-change verification
 
@@ -225,21 +234,22 @@ When installed, these slash commands are available in Claude Code:
 Add the Kimi section to your project's CLAUDE.md (template at `.claude/CLAUDE.md.kimi-section`):
 
 ```markdown
-## Kimi Context Companion
+## Kimi R&D Subagent
 
-**Division of labor:** Kimi = Eyes (K2.5 large context), Claude = Hands (implementation)
+**Division of labor:** Claude = Brain (architect, coordinator, reviewer), Kimi = Hands (developer, implementer, debugger)
 
-**Workflow:** Analyze (Kimi) -> Implement (Claude) -> Verify (Kimi)
+**Workflow:** Design (Claude) -> Implement (Kimi) -> Review (Claude) -> Verify (Kimi)
 
 ## Delegation Rules
 
-**Delegate to Kimi when:** >100 lines, multiple files, unfamiliar code, tracing logic
+**Delegate to Kimi:** Feature implementation, bug fixes, refactoring, test writing, multi-file changes.
 
-**Handle directly:** Single-file edits, new code, tests/builds, docs
+**Keep for yourself:** Architecture decisions, design reviews, approvals, user communication.
 
 ## Roles
 
-`reviewer` `auditor` `debugger` `security` `refactorer` `implementer` `simplifier`
+**Action:** `implementer` `debugger` `refactorer` `simplifier`
+**Analysis:** `reviewer` `auditor` `security`
 ```
 
 ### Context File

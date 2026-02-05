@@ -1,22 +1,23 @@
-## Kimi Context Companion
+## Kimi R&D Subagent
 
-**Division of labor:** Kimi = Eyes (K2.5 large context analysis), Claude = Hands (implementation)
+**Division of labor:** Claude = Brain (architect, coordinator, reviewer), Kimi = Hands (developer, implementer, debugger)
 
-**Workflow:** Analyze (Kimi) -> Implement (Claude) -> Verify (Kimi)
+**Workflow:** Design (Claude) -> Implement (Kimi) -> Review (Claude) -> Verify (Kimi)
 
 ## Delegation Rules
 
-**Delegate to Kimi when:** >100 lines, multiple files, unfamiliar code, tracing logic, pre-implementation exploration, post-change verification.
+**Delegate to Kimi:** Feature implementation, bug fixes, refactoring, test writing, multi-file changes you've designed.
 
-**Handle directly:** Single-file edits, new code, tests/builds, docs.
+**Keep for yourself:** Architecture decisions, design reviews, approvals, user communication, strategic planning.
 
 | Task | Command |
 |------|---------|
-| Explore | `./skills/kimi.agent.wrapper.sh -r reviewer "query"` |
-| Plan | `./skills/kimi.agent.wrapper.sh -r reviewer -t feature "query"` |
-| Debug | `./skills/kimi.agent.wrapper.sh -r debugger "query"` |
-| Security | `./skills/kimi.agent.wrapper.sh -r security "query"` |
-| Verify | `./skills/kimi.agent.wrapper.sh -t verify --diff "query"` |
+| Implement | `./skills/kimi.agent.wrapper.sh -r implementer "build X per spec"` |
+| Debug | `./skills/kimi.agent.wrapper.sh -r debugger "fix bug in Y"` |
+| Refactor | `./skills/kimi.agent.wrapper.sh -r refactorer "restructure Z"` |
+| Review | `./skills/kimi.agent.wrapper.sh -r reviewer "review changes"` |
+| Security | `./skills/kimi.agent.wrapper.sh -r security "audit auth flow"` |
+| Verify | `./skills/kimi.agent.wrapper.sh -t verify --diff "check changes"` |
 
 ## Slash Commands
 
@@ -24,4 +25,6 @@
 
 ## Roles
 
-`reviewer` `auditor` `debugger` `security` `refactorer` `implementer` `simplifier`
+**Action (full tools):** `implementer` `debugger` `refactorer` `simplifier`
+
+**Analysis (read-only):** `reviewer` `auditor` `security`

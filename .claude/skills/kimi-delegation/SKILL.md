@@ -1,65 +1,79 @@
 ---
 name: Kimi Research Subagent
-description: Delegates large-context code analysis to Kimi K2.5. Use when analyzing codebases, tracing bugs across files, reviewing architecture, or performing security audits. Kimi reads, Claude implements.
+description: Delegates development tasks to Kimi K2.5. Use when implementing features, debugging issues, refactoring code, or running tests. Claude architects, Kimi implements.
 dependencies:
   - kimi-cli
 ---
 
-# Kimi Research Subagent
+# Kimi R&D Subagent
 
-You have access to Kimi K2.5 as a large-context research assistant. **Use Kimi for reading/analyzing, use yourself for implementation.**
+You have access to Kimi K2.5 as an autonomous R&D agent. **You are the Architect (brain + eyes). Kimi is the Developer (hands).**
 
-## When to Invoke Kimi
+## Division of Labor
 
-**ALWAYS use Kimi BEFORE:**
-- Reading files >100 lines
-- Understanding unfamiliar code
-- Tracing bugs across multiple files
-- Making multi-component changes
-- Security or architecture reviews
+| Claude (Architect) | Kimi (Developer) |
+|-------------------|------------------|
+| Design & plan | Implement features |
+| Review & approve | Debug & fix bugs |
+| Coordinate work | Refactor code |
+| Make decisions | Run tests |
+| Set direction | Execute tasks |
 
-**DO NOT use Kimi for:**
-- Simple single-file edits
-- Writing code (that's your job)
-- Files already analyzed this session
+## When to Delegate to Kimi
+
+**DELEGATE implementation work:**
+- Feature implementation from your specs
+- Bug investigation and fixing
+- Code refactoring tasks
+- Test writing and execution
+- Multi-file changes you've designed
+
+**KEEP for yourself:**
+- Architecture decisions
+- Design reviews
+- Approving Kimi's work
+- User communication
+- Strategic planning
 
 ## How to Invoke
 
 ```bash
-./skills/kimi.agent.wrapper.sh -r <role> "query"
-./skills/kimi.agent.wrapper.sh -r <role> -w <path> "query"
+# Implementation tasks (action roles - full tool access)
+./skills/kimi.agent.wrapper.sh -r implementer "Build the auth module per spec"
+./skills/kimi.agent.wrapper.sh -r debugger "Fix the null pointer in UserService"
+./skills/kimi.agent.wrapper.sh -r refactorer "Extract payment logic into service"
+./skills/kimi.agent.wrapper.sh -r simplifier "Reduce complexity in data layer"
+
+# Analysis tasks (read-only roles)
+./skills/kimi.agent.wrapper.sh -r reviewer "Review the PR changes"
+./skills/kimi.agent.wrapper.sh -r security "Audit authentication flow"
+./skills/kimi.agent.wrapper.sh -r auditor "Check architecture compliance"
 ```
 
-## Available Roles
+## Roles
 
-| Role | Use Case |
-|------|----------|
-| `reviewer` | Code quality, bugs, patterns |
-| `auditor` | Architecture, best practices |
-| `debugger` | Bug tracing, root cause (can write) |
-| `security` | Security vulnerabilities |
-| `refactorer` | Restructuring (can write) |
-| `implementer` | Feature implementation (can write) |
-| `simplifier` | Complexity reduction (can write) |
+| Role | Type | Use Case |
+|------|------|----------|
+| `implementer` | Action | Build features from specs |
+| `debugger` | Action | Investigate and fix bugs |
+| `refactorer` | Action | Restructure code |
+| `simplifier` | Action | Reduce complexity |
+| `reviewer` | Analysis | Code review (read-only) |
+| `security` | Analysis | Security audit (read-only) |
+| `auditor` | Analysis | Architecture check (read-only) |
 
 ## Templates
 
 ```bash
-./skills/kimi.agent.wrapper.sh -t verify --diff "query"  # Post-change verification
-./skills/kimi.agent.wrapper.sh -t feature "query"        # Feature planning
-./skills/kimi.agent.wrapper.sh -t bug "query"            # Bug analysis
+./skills/kimi.agent.wrapper.sh -t implement-ready "spec"  # Implementation spec
+./skills/kimi.agent.wrapper.sh -t fix-ready "bug desc"    # Bug fix spec
+./skills/kimi.agent.wrapper.sh -t verify --diff "check"   # Post-change verify
 ```
-
-## Response Format
-
-Kimi returns structured output:
-- **SUMMARY**: 1-2 sentence overview
-- **FILES**: file:line references
-- **ANALYSIS**: detailed findings
-- **RECOMMENDATIONS**: actionable items
 
 ## Workflow Pattern
 
-1. **Research**: Invoke Kimi to understand context
-2. **Implement**: You write code based on analysis
-3. **Verify**: Invoke Kimi to verify changes
+1. **You Design**: Create spec/plan for the work
+2. **Kimi Implements**: Delegate to appropriate role
+3. **Kimi Reports**: Returns structured output
+4. **You Review**: Approve or request changes
+5. **Kimi Verifies**: Run verification if needed
