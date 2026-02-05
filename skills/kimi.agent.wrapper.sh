@@ -284,10 +284,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -r|--role)
             [[ -z "${2:-}" ]] && die "Option $1 requires an argument" "$EXIT_BAD_ARGS"
+            ROLE="$2"; shift 2 ;;
         -t|--template)
             [[ -z "${2:-}" ]] && die "Option $1 requires an argument" "$EXIT_BAD_ARGS"
             TEMPLATE="$2"; shift 2 ;;
-            ROLE="$2"; shift 2 ;;
         -m|--model)
             [[ -z "${2:-}" ]] && die "Option $1 requires an argument" "$EXIT_BAD_ARGS"
             MODEL="$2"; shift 2 ;;
