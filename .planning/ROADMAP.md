@@ -46,11 +46,12 @@ Plans:
   3. Action roles (debugger, refactorer, implementer, simplifier) retain full tool access for autonomous work
   4. All roles produce structured output (SUMMARY/FILES/ANALYSIS/RECOMMENDATIONS sections)
   5. All agent YAML files use `extend: default` for Kimi-native inheritance
-**Plans**: TBD
+**Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md -- Create 3 analysis role agents (reviewer, security, auditor) with read-only tool access
+- [ ] 02-02-PLAN.md -- Create 4 action role agents (debugger, refactorer, implementer, simplifier) with full tool access
+- [ ] 02-03-PLAN.md -- Verify all 7 agent configurations work correctly (syntax, invocation, tool restrictions, output format)
 
 ### Phase 3: Prompt Assembly
 **Goal**: Users can enrich Kimi invocations with templates, git diffs, and project context without manual prompt construction
@@ -123,7 +124,7 @@ Note: Phase 3 (Prompt Assembly) depends only on Phase 1 and can be planned in pa
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Wrapper | 1/1 | Complete | 2026-02-04 |
-| 2. Agent Roles | 0/TBD | Not started | - |
+| 2. Agent Roles | 0/3 | Not started | - |
 | 3. Prompt Assembly | 0/TBD | Not started | - |
 | 4. Developer Experience | 0/TBD | Not started | - |
 | 5. Claude Code Integration | 0/TBD | Not started | - |
