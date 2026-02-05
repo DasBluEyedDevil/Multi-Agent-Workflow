@@ -252,9 +252,17 @@ ${file_contents}
     # Add main prompt
     full_prompt="${full_prompt}Task: ${prompt}"
 
-    # Call Kimi
+    # Determine model: auto_model or static config
+    local auto_model
+    auto_model=$(echo "$arguments" | jq -r '.auto_model // false')
+
     local model
-    model=$(mcp_config_model)
+    if [[ "$auto_model" == "true" ]]; then
+        model=$(mcp_select_model "$prompt" "$files")
+    else
+        model=$(mcp_config_model)
+    fi
+
     local timeout
     timeout=$(mcp_config_timeout)
 
@@ -331,9 +339,17 @@ ${file_contents}
     # Add main prompt
     full_prompt="${full_prompt}Implementation request: ${prompt}"
 
-    # Call Kimi
+    # Determine model: auto_model or static config
+    local auto_model
+    auto_model=$(echo "$arguments" | jq -r '.auto_model // false')
+
     local model
-    model=$(mcp_config_model)
+    if [[ "$auto_model" == "true" ]]; then
+        model=$(mcp_select_model "$prompt" "$files")
+    else
+        model=$(mcp_config_model)
+    fi
+
     local timeout
     timeout=$(mcp_config_timeout)
 
@@ -410,9 +426,17 @@ ${file_contents}
     # Add main prompt
     full_prompt="${full_prompt}Refactoring request: ${prompt}"
 
-    # Call Kimi
+    # Determine model: auto_model or static config
+    local auto_model
+    auto_model=$(echo "$arguments" | jq -r '.auto_model // false')
+
     local model
-    model=$(mcp_config_model)
+    if [[ "$auto_model" == "true" ]]; then
+        model=$(mcp_select_model "$prompt" "$files")
+    else
+        model=$(mcp_config_model)
+    fi
+
     local timeout
     timeout=$(mcp_config_timeout)
 
@@ -490,9 +514,17 @@ ${file_contents}
     # Add main prompt
     full_prompt="${full_prompt}Verification criteria: ${prompt}"
 
-    # Call Kimi
+    # Determine model: auto_model or static config
+    local auto_model
+    auto_model=$(echo "$arguments" | jq -r '.auto_model // false')
+
     local model
-    model=$(mcp_config_model)
+    if [[ "$auto_model" == "true" ]]; then
+        model=$(mcp_select_model "$prompt" "$files")
+    else
+        model=$(mcp_config_model)
+    fi
+
     local timeout
     timeout=$(mcp_config_timeout)
 
