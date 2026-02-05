@@ -47,12 +47,12 @@ Each role is a YAML agent file + markdown system prompt:
 
 ### Claude Code Integration
 
-- [ ] **INTG-01**: `/kimi-analyze` slash command -- delegate code analysis to Kimi with reviewer role
-- [ ] **INTG-02**: `/kimi-audit` slash command -- delegate code audit to Kimi with auditor role
-- [ ] **INTG-03**: `/kimi-trace` slash command -- delegate execution tracing/debugging to Kimi with debugger role
-- [ ] **INTG-04**: `/kimi-verify` slash command -- delegate post-change verification to Kimi with verify template
-- [ ] **INTG-05**: SKILL.md defining the Kimi integration skill (under 3,000 chars per Claude Code budget)
-- [ ] **INTG-06**: CLAUDE.md section template with delegation rules (when to use Kimi vs handle directly)
+- [x] **INTG-01**: `/kimi-analyze` slash command -- delegate code analysis to Kimi with reviewer role
+- [x] **INTG-02**: `/kimi-audit` slash command -- delegate code audit to Kimi with auditor role
+- [x] **INTG-03**: `/kimi-trace` slash command -- delegate execution tracing/debugging to Kimi with debugger role
+- [x] **INTG-04**: `/kimi-verify` slash command -- delegate post-change verification to Kimi with verify template
+- [x] **INTG-05**: SKILL.md defining the Kimi integration skill (under 3,000 chars per Claude Code budget)
+- [x] **INTG-06**: CLAUDE.md section template with delegation rules (when to use Kimi vs handle directly)
 
 ### Distribution
 
@@ -129,12 +129,12 @@ Each role is a YAML agent file + markdown system prompt:
 | ROLE-09 | Phase 2 | Complete |
 | ROLE-10 | Phase 2 | Complete |
 | ROLE-11 | Phase 2 | Complete |
-| INTG-01 | Phase 5 | Pending |
-| INTG-02 | Phase 5 | Pending |
-| INTG-03 | Phase 5 | Pending |
-| INTG-04 | Phase 5 | Pending |
-| INTG-05 | Phase 5 | Pending |
-| INTG-06 | Phase 5 | Pending |
+| INTG-01 | Phase 5 | Complete |
+| INTG-02 | Phase 5 | Complete |
+| INTG-03 | Phase 5 | Complete |
+| INTG-04 | Phase 5 | Complete |
+| INTG-05 | Phase 5 | Complete |
+| INTG-06 | Phase 5 | Complete |
 | DIST-01 | Phase 6 | Pending |
 | DIST-02 | Phase 6 | Pending |
 | DIST-03 | Phase 6 | Pending |
@@ -150,4 +150,4 @@ Each role is a YAML agent file + markdown system prompt:
 
 ---
 *Requirements defined: 2026-02-04*
-*Last updated: 2026-02-05 after Phase 4 completion*
+*Last updated: 2026-02-05 after Phase 5 completion*

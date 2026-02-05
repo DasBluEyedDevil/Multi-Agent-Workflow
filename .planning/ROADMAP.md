@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Agent Roles** - Full agent YAML files, system prompts, and tool access scoping
 - [x] **Phase 3: Prompt Assembly** - Templates, git diff injection, and context file loading
 - [x] **Phase 4: Developer Experience** - Thinking mode, dry-run, verbose, and help output
-- [ ] **Phase 5: Claude Code Integration** - Slash commands, SKILL.md, and CLAUDE.md delegation rules
+- [x] **Phase 5: Claude Code Integration** - Slash commands, SKILL.md, and CLAUDE.md delegation rules
 - [ ] **Phase 6: Distribution** - Install/uninstall scripts, PowerShell shim, README, and version pinning
 
 ## Phase Details
@@ -95,8 +95,8 @@ Plans:
 **Plans**: 2 plans in 1 wave (parallel)
 
 Plans:
-- [ ] 05-01-PLAN.md -- Create 4 slash commands (/kimi-analyze, /kimi-audit, /kimi-trace, /kimi-verify)
-- [ ] 05-02-PLAN.md -- Create SKILL.md (<3000 chars) and CLAUDE.md.kimi-section template
+- [x] 05-01-PLAN.md -- Create 4 slash commands (/kimi-analyze, /kimi-audit, /kimi-trace, /kimi-verify)
+- [x] 05-02-PLAN.md -- Create SKILL.md (<3000 chars) and CLAUDE.md.kimi-section template
 
 ### Phase 6: Distribution
 **Goal**: Users can install the entire plugin by cloning the repo and running one command, on any platform
@@ -130,5 +130,5 @@ Note: Phase 3 (Prompt Assembly) depends only on Phase 1 and can be planned in pa
 | 2. Agent Roles | 3/3 | Complete | 2026-02-04 |
 | 3. Prompt Assembly | 3/3 | Complete | 2026-02-05 |
 | 4. Developer Experience | 2/2 | Complete | 2026-02-05 |
-| 5. Claude Code Integration | 0/TBD | Not started | - |
+| 5. Claude Code Integration | 2/2 | Complete | 2026-02-05 |
 | 6. Distribution | 0/TBD | Not started | - |
