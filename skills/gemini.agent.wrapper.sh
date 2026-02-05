@@ -6,8 +6,17 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GLOBAL_GEMINI_DIR="$SCRIPT_DIR/../.gemini"
+GLOBAL_CONTEXT_ROOT="$SCRIPT_DIR/.."
+
 # Load configuration file if it exists (allows setting defaults)
 CONFIG_FILE=".gemini/config"
+GLOBAL_CONFIG_FILE="$GLOBAL_GEMINI_DIR/config"
+if [ -f "$GLOBAL_CONFIG_FILE" ]; then
+    # shellcheck source=/dev/null
+    source "$GLOBAL_CONFIG_FILE"
+fi
 if [ -f "$CONFIG_FILE" ]; then
     # shellcheck source=/dev/null
     source "$CONFIG_FILE"
@@ -91,7 +100,7 @@ DIFF_AWARE=false  # Only include files changed in current branch
 SAVE_LAST_RESPONSE=false  # Save response for later parsing
 LAST_RESPONSE_FILE=".gemini/last-response.txt"
 
-# Role definitions are loaded from .gemini/roles/*.md files
+# Role definitions are loaded from project or global .gemini/roles/*.md files
 # The ROLE_OUTPUT_FORMAT is appended to all custom roles automatically
 # No built-in roles are hardcoded - all roles are externalized
 
@@ -207,9 +216,11 @@ Bug details:
 TMPL
             ;;
         *)
-            # Try loading custom template from .gemini/templates/
+            # Try loading custom template from .gemini/templates/, then global install
             if [ -f ".gemini/templates/${template_name}.md" ]; then
                 cat ".gemini/templates/${template_name}.md"
+            elif [ -f "$GLOBAL_GEMINI_DIR/templates/${template_name}.md" ]; then
+                cat "$GLOBAL_GEMINI_DIR/templates/${template_name}.md"
             else
                 echo ""
             fi
@@ -217,14 +228,23 @@ TMPL
     esac
 }
 
-# Function to get role (from .gemini/roles/ directory only)
+# Function to get role (project roles first, then global)
 get_role() {
     local role_name="$1"
 
     # Check for role in .gemini/roles/
     if [ -f ".gemini/roles/${role_name}.md" ]; then
         cat ".gemini/roles/${role_name}.md"
-        # Append standard output format to all roles for Claude consumption
+        # Append standard output format to all roles for Claude consumption     
+        echo "$ROLE_OUTPUT_FORMAT"
+        [ "$VERBOSE" = true ] && echo -e "${CYAN}📋 Loaded role: ${role_name}${NC}" >&2
+        return 0
+    fi
+
+    # Fall back to global roles next to the wrapper install
+    if [ -f "$GLOBAL_GEMINI_DIR/roles/${role_name}.md" ]; then
+        cat "$GLOBAL_GEMINI_DIR/roles/${role_name}.md"
+        # Append standard output format to all roles for Claude consumption     
         echo "$ROLE_OUTPUT_FORMAT"
         [ "$VERBOSE" = true ] && echo -e "${CYAN}📋 Loaded role: ${role_name}${NC}" >&2
         return 0
@@ -237,7 +257,14 @@ get_role() {
 # Function to find and load prompt injection context
 load_context() {
     local context=""
-    local context_files=(".gemini/GeminiContext.md" "GeminiContext.md" ".gemini/context.md")
+    local context_files=(
+        ".gemini/GeminiContext.md"
+        "GeminiContext.md"
+        ".gemini/context.md"
+        "$GLOBAL_CONTEXT_ROOT/GeminiContext.md"
+        "$GLOBAL_GEMINI_DIR/GeminiContext.md"
+        "$GLOBAL_GEMINI_DIR/context.md"
+    )
     
     for cf in "${context_files[@]}"; do
         if [ -f "$cf" ]; then
@@ -293,7 +320,7 @@ ${BLUE}OPTIONS:${NC}
     -h, --help             Display this help message
 
 ${BLUE}ROLES:${NC}
-    Roles are loaded from ${CYAN}.gemini/roles/*.md${NC} files.
+    Roles are loaded from ${CYAN}.gemini/roles/*.md${NC} and ${CYAN}$GLOBAL_GEMINI_DIR/roles/*.md${NC}.
     ${YELLOW}Example:${NC} -r reviewer, -r security, -r planner
     Run with an invalid role name to see all available roles.
 
@@ -571,16 +598,13 @@ if [ -n "$ROLE" ]; then
 
 "
     else
-        # List available roles from .gemini/roles/
-        AVAILABLE_ROLES=""
-        if [ -d ".gemini/roles" ]; then
-            AVAILABLE_ROLES=$(ls -1 .gemini/roles/*.md 2>/dev/null | xargs -I {} basename {} .md | tr '\n' ', ' | sed 's/,$//')
-        fi
+        # List available roles from project and global installs
+        AVAILABLE_ROLES=$( { ls -1 .gemini/roles/*.md 2>/dev/null || true; ls -1 "$GLOBAL_GEMINI_DIR"/roles/*.md 2>/dev/null || true; } | xargs -I {} basename {} .md | sort -u | tr '\n' ', ' | sed 's/,$//')
         echo -e "${RED}Error: Unknown role '$ROLE'.${NC}"
         if [ -n "$AVAILABLE_ROLES" ]; then
             echo -e "${YELLOW}Available roles: $AVAILABLE_ROLES${NC}"
         else
-            echo -e "${YELLOW}No roles found. Create roles in .gemini/roles/*.md${NC}"
+            echo -e "${YELLOW}No roles found. Create roles in .gemini/roles/*.md (project) or $GLOBAL_GEMINI_DIR/roles/*.md (global)${NC}"
         fi
         exit 1
     fi

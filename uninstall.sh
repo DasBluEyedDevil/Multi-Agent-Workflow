@@ -47,6 +47,7 @@ esac
 echo -e "${YELLOW}This will remove:${NC}"
 echo "  - $TARGET_DIR/skills/gemini.agent.wrapper.sh"
 echo "  - $TARGET_DIR/skills/gemini-parse.sh"
+echo "  - $TARGET_DIR/skills/gemini.ps1"
 echo "  - $TARGET_DIR/skills/gemini-research/ (if global)"
 echo "  - $TARGET_DIR/.gemini/ directory"
 echo "  - $TARGET_DIR/GeminiContext.md"
@@ -69,6 +70,7 @@ echo -e "${BLUE}Removing files...${NC}"
 # Remove wrapper scripts
 [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ] && rm "$TARGET_DIR/skills/gemini.agent.wrapper.sh" && echo -e "  ${GREEN}✓${NC} Removed gemini.agent.wrapper.sh"
 [ -f "$TARGET_DIR/skills/gemini-parse.sh" ] && rm "$TARGET_DIR/skills/gemini-parse.sh" && echo -e "  ${GREEN}✓${NC} Removed gemini-parse.sh"
+[ -f "$TARGET_DIR/skills/gemini.ps1" ] && rm "$TARGET_DIR/skills/gemini.ps1" && echo -e "  ${GREEN}✓${NC} Removed gemini.ps1"
 
 # Remove skill definition (global)
 [ -d "$TARGET_DIR/skills/gemini-research" ] && rm -rf "$TARGET_DIR/skills/gemini-research" && echo -e "  ${GREEN}✓${NC} Removed skills/gemini-research/"

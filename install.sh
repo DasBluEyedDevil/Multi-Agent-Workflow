@@ -132,7 +132,7 @@ if [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ]; then
     echo -e "${YELLOW}Existing installation detected!${NC}"
     echo ""
     echo "  This will:"
-    echo "  ${GREEN}✓${NC} Update wrapper scripts (gemini.agent.wrapper.sh, gemini-parse.sh)"
+    echo "  ${GREEN}✓${NC} Update wrapper scripts (gemini.agent.wrapper.sh, gemini-parse.sh, gemini.ps1)"
     echo "  ${GREEN}✓${NC} Update role definitions (.gemini/roles/*.md)"
     echo "  ${GREEN}✓${NC} Update skill definition (SKILL.md)"
     echo "  ${GREEN}✓${NC} Update slash commands (.claude/commands/gemini-*.md)"
@@ -150,6 +150,7 @@ if [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ]; then
         # Backup existing files
         [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ] && cp "$TARGET_DIR/skills/gemini.agent.wrapper.sh" "$BACKUP_DIR/"
         [ -f "$TARGET_DIR/skills/gemini-parse.sh" ] && cp "$TARGET_DIR/skills/gemini-parse.sh" "$BACKUP_DIR/"
+        [ -f "$TARGET_DIR/skills/gemini.ps1" ] && cp "$TARGET_DIR/skills/gemini.ps1" "$BACKUP_DIR/"
         [ -d "$TARGET_DIR/.gemini/roles" ] && cp -r "$TARGET_DIR/.gemini/roles" "$BACKUP_DIR/"
         [ -f "$TARGET_DIR/.gemini/config" ] && cp "$TARGET_DIR/.gemini/config" "$BACKUP_DIR/"
         [ -f "$TARGET_DIR/GeminiContext.md" ] && cp "$TARGET_DIR/GeminiContext.md" "$BACKUP_DIR/"
@@ -210,6 +211,7 @@ fi
 # Copy wrapper scripts
 cp "$SCRIPT_DIR/skills/gemini.agent.wrapper.sh" "$TARGET_DIR/skills/"
 cp "$SCRIPT_DIR/skills/gemini-parse.sh" "$TARGET_DIR/skills/"
+cp "$SCRIPT_DIR/skills/gemini.ps1" "$TARGET_DIR/skills/"
 chmod +x "$TARGET_DIR/skills/"*.sh
 echo -e "  ${GREEN}✓${NC} Copied wrapper scripts"
 
