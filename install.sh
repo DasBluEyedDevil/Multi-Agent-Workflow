@@ -502,6 +502,60 @@ fi
 echo "$MIN_KIMI_VERSION" > "$TARGET_DIR/.kimi-version"
 echo -e "  ${GREEN}✓${NC} Created .kimi-version file"
 
+# -- MCP Bridge Installation --
+
+install_mcp_bridge() {
+    echo -e "${BLUE}Installing MCP Bridge...${NC}"
+    
+    # Create MCP bridge directories
+    mkdir -p "$TARGET_DIR/mcp-bridge/lib"
+    mkdir -p "$TARGET_DIR/mcp-bridge/config"
+    mkdir -p "$TARGET_DIR/mcp-bridge/tests"
+    mkdir -p "$TARGET_DIR/bin"
+    
+    # Copy MCP bridge files
+    if [ -d "$SCRIPT_DIR/mcp-bridge" ]; then
+        cp -r "$SCRIPT_DIR/mcp-bridge/lib" "$TARGET_DIR/mcp-bridge/"
+        cp -r "$SCRIPT_DIR/mcp-bridge/config" "$TARGET_DIR/mcp-bridge/"
+        cp "$SCRIPT_DIR/mcp-bridge/bin/kimi-mcp-server" "$TARGET_DIR/mcp-bridge/bin/"
+        chmod +x "$TARGET_DIR/mcp-bridge/bin/kimi-mcp-server"
+        echo -e "  ${GREEN}✓${NC} Copied MCP bridge server"
+        
+        # Copy CLI wrappers
+        if [ -f "$SCRIPT_DIR/bin/kimi-mcp" ]; then
+            cp "$SCRIPT_DIR/bin/kimi-mcp" "$TARGET_DIR/bin/"
+            chmod +x "$TARGET_DIR/bin/kimi-mcp"
+            echo -e "  ${GREEN}✓${NC} Copied kimi-mcp CLI"
+        fi
+        
+        if [ -f "$SCRIPT_DIR/bin/kimi-mcp-setup" ]; then
+            cp "$SCRIPT_DIR/bin/kimi-mcp-setup" "$TARGET_DIR/bin/"
+            chmod +x "$TARGET_DIR/bin/kimi-mcp-setup"
+            echo -e "  ${GREEN}✓${NC} Copied kimi-mcp-setup helper"
+        fi
+        
+        # Create user config directory
+        mkdir -p "$HOME/.config/kimi-mcp"
+        
+        # Copy default config if user config doesn't exist
+        if [[ ! -f "$HOME/.config/kimi-mcp/config.json" ]]; then
+            cp "$TARGET_DIR/mcp-bridge/config/default.json" "$HOME/.config/kimi-mcp/config.json"
+            echo -e "  ${GREEN}✓${NC} Created default config at ~/.config/kimi-mcp/config.json"
+        else
+            echo -e "  ${YELLOW}⚠${NC} Existing ~/.config/kimi-mcp/config.json preserved"
+        fi
+        
+        echo -e "  ${GREEN}✓${NC} MCP Bridge installed"
+        echo ""
+        echo -e "  ${CYAN}→${NC} Run 'kimi-mcp-setup install' to register with Kimi CLI"
+    else
+        echo -e "  ${YELLOW}⚠${NC} MCP bridge source not found - skipping"
+    fi
+}
+
+# Install MCP Bridge
+install_mcp_bridge
+
 # -- Shared Components --
 
 # Copy other slash commands (if provided)
