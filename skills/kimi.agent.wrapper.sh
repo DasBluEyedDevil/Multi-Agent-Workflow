@@ -6,7 +6,7 @@
 #   -m, --model MODEL    Kimi model (default: kimi-for-coding)
 #   -w, --work-dir PATH  Working directory for Kimi
 #   -t, --template TPL   Template to prepend (maps to .kimi/templates/TPL.md)
-  -h, --help           Show this help
+#   -h, --help           Show this help
 # Prompt can also be piped via stdin.
 
 set -euo pipefail
@@ -280,8 +280,6 @@ die_template_not_found() {
     fi
     exit "$EXIT_TEMPLATE_NOT_FOUND"
 }
-}
-
 # -- Usage -------------------------------------------------------------------
 
 usage() {
@@ -364,6 +362,16 @@ if [[ -n "$ROLE" ]]; then
     AGENT_FILE="$resolved"
 fi
 
+# Step 4: Resolve template if specified and assemble prompt
+TEMPLATE_CONTENT=""
+if [[ -n "$TEMPLATE" ]]; then
+    template_path=$(resolve_template "$TEMPLATE") || true
+    if [[ -z "$template_path" ]]; then
+        die_template_not_found "$TEMPLATE"
+    fi
+    TEMPLATE_CONTENT=$(cat "$template_path")
+fi
+
 # -- Command construction and invocation -------------------------------------
 
 # Build command as array (never eval or string concatenation)
@@ -384,11 +392,20 @@ if [[ ${#PASSTHROUGH_ARGS[@]} -gt 0 ]]; then
     cmd+=("${PASSTHROUGH_ARGS[@]}")
 fi
 
+# Assemble final prompt: template content + user prompt
+if [[ -n "$TEMPLATE_CONTENT" ]]; then
+    ASSEMBLED_PROMPT="${TEMPLATE_CONTENT}
+
+${PROMPT}"
+else
+    ASSEMBLED_PROMPT="$PROMPT"
+fi
+
 # Add prompt as final argument
-cmd+=("--prompt" "$PROMPT")
+cmd+=("--prompt" "$ASSEMBLED_PROMPT")
 
 # Emit machine-parseable header to stderr (Phase 5 Claude Code integration)
-echo "[kimi:${ROLE:-none}:${MODEL}]" >&2
+echo "[kimi:${ROLE:-none}:${TEMPLATE:-none}:${MODEL}]" >&2
 
 # Execute kimi and propagate its exit code
 kimi_exit=0
