@@ -1,0 +1,192 @@
+# Roadmap: Multi-Agent-Workflow v2.0
+
+**Milestone:** v2.0 Autonomous Delegation  
+**Goal:** Enable aggressive autonomous delegation by exposing Kimi as MCP tools and auto-invoking it for hands-on coding tasks, preserving Claude Code tokens for architecture and coordination.  
+**Created:** 2026-02-05  
+**Phases:** 8-11 (4 phases)
+
+---
+
+## Phase Overview
+
+| Phase | Name | Goal | Requirements | Success Criteria |
+|-------|------|------|--------------|------------------|
+| 8 | MCP Bridge | Expose Kimi as callable MCP tools | MCP-01 to MCP-09, CONF-09 | 5 criteria |
+| 9 | Hooks System | Auto-delegate coding tasks via git hooks | HOOK-01 to HOOK-09 | 5 criteria |
+| 10 | Enhanced SKILL.md | Smart triggers with model tiering | SKILL-01 to SKILL-08, INT-02 | 5 criteria |
+| 11 | Integration & Distribution | Update installer and documentation | INT-01, INT-03 to INT-08 | 4 criteria |
+
+---
+
+## Phase 8: MCP Bridge
+
+**Goal:** Implement MCP server exposing Kimi as callable tools for external AI systems
+
+**Requirements:**
+- MCP-01: MCP server implementation
+- MCP-02 to MCP-05: Tool implementations (analyze, implement, refactor, verify)
+- MCP-06: Transport modes (stdio, HTTP/SSE)
+- MCP-07: Configuration per tool
+- MCP-08: Error handling
+- CONF-09: CLI command to start MCP server
+
+**Success Criteria:**
+1. MCP server starts and responds to tool calls
+2. Each tool (analyze, implement, refactor, verify) works correctly
+3. Both stdio and HTTP transports function
+4. Configuration affects tool behavior as expected
+5. Errors return meaningful MCP error codes
+
+**Phase Dependencies:**
+- Requires: Configuration system foundation (Phase 7 from v1.0 baseline)
+- Provides: MCP tools for external integration
+
+---
+
+## Phase 9: Hooks System
+
+**Goal:** Implement predefined git hooks that auto-delegate hands-on coding tasks to Kimi
+
+**Requirements:**
+- HOOK-01: Git pre-commit hook
+- HOOK-02: Git post-checkout hook
+- HOOK-03: Git pre-push hook
+- HOOK-04: File watcher hook (on-save)
+- HOOK-05: Hook installer (global/local)
+- HOOK-06: Hook configuration file
+- HOOK-07: Selective hook enablement
+- HOOK-08: Hook bypass mechanism
+- HOOK-09: Dry-run mode
+
+**Success Criteria:**
+1. Hooks install successfully (both global and per-project)
+2. Pre-commit hook auto-fixes issues before commit
+3. Post-checkout hook analyzes changed files
+4. Pre-push hook runs tests and fixes failures
+5. Configuration controls hook behavior correctly
+
+**Phase Dependencies:**
+- Requires: MCP Bridge (Phase 8) for tool invocation
+- Provides: Automated delegation via git workflow
+
+---
+
+## Phase 10: Enhanced SKILL.md
+
+**Goal:** Implement smart triggers for autonomous delegation with intelligent model selection (K2 for routine, K2.5 for creative/UI)
+
+**Requirements:**
+- SKILL-01: Model selection logic (K2 vs K2.5)
+- SKILL-02: File extension → model mapping
+- SKILL-03: Task type → model mapping
+- SKILL-04: Code pattern detection triggers
+- SKILL-05: Auto-delegation confidence threshold
+- SKILL-06: Context preservation across delegations
+- SKILL-07: Cost estimation before delegation
+- SKILL-08: Override mechanism
+- INT-02: Update SKILL.md with v2.0 patterns
+
+**Success Criteria:**
+1. Routine tasks (refactoring, tests) use K2 automatically
+2. Creative/UI tasks use K2.5 automatically
+3. File extensions correctly map to appropriate models
+4. Confidence threshold prevents low-confidence delegations
+5. Cost estimates display before delegation
+
+**Phase Dependencies:**
+- Requires: Hooks System (Phase 9) for trigger points
+- Provides: Intelligent delegation decisions
+
+---
+
+## Phase 11: Integration & Distribution
+
+**Goal:** Update installer, documentation, and Claude Code integration for v2.0
+
+**Requirements:**
+- INT-01: Update install.sh for v2.0
+- INT-03: Update CLAUDE.md with new slash commands
+- INT-04: Create `kimi-mcp.md` slash command
+- INT-05: Create `kimi-hooks.md` slash command
+- INT-06: MCP setup guide
+- INT-07: Hooks configuration guide
+- INT-08: Model selection best practices
+
+**Success Criteria:**
+1. install.sh installs all v2.0 components
+2. New slash commands work in Claude Code
+3. Documentation covers MCP setup
+4. Documentation covers hooks configuration
+5. Model selection guide helps users understand K2 vs K2.5
+
+**Phase Dependencies:**
+- Requires: All previous phases complete
+- Provides: Complete v2.0 distribution
+
+---
+
+## Requirement Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| MCP-01 to MCP-08 | Phase 8 | Pending |
+| CONF-09 | Phase 8 | Pending |
+| HOOK-01 to HOOK-09 | Phase 9 | Pending |
+| SKILL-01 to SKILL-08 | Phase 10 | Pending |
+| INT-02 | Phase 10 | Pending |
+| INT-01, INT-03 to INT-08 | Phase 11 | Pending |
+| CONF-01 to CONF-08 | Phase 7* | Complete |
+
+*Note: Configuration system foundation (CONF-01 to CONF-08) assumed from v1.0 baseline or completed as part of Phase 8 initialization.
+
+**Coverage:**
+- Total v2.0 requirements: 41
+- Mapped to phases: 41
+- Unmapped: 0 ✓
+
+---
+
+## Execution Order
+
+**Sequential execution recommended:**
+
+1. **Phase 8 (MCP Bridge)** → Foundation for external integration
+2. **Phase 9 (Hooks System)** → Builds on MCP for git workflow
+3. **Phase 10 (Enhanced SKILL.md)** → Adds intelligence to triggers
+4. **Phase 11 (Integration)** → Packages everything for distribution
+
+**Rationale:**
+- MCP Bridge is the foundation — hooks and SKILL.md use MCP tools
+- Hooks System depends on MCP for actual delegation
+- Enhanced SKILL.md depends on hooks for trigger points
+- Integration must happen last when all components are stable
+
+---
+
+## Risk Mitigation
+
+| Risk | Mitigation | Phase |
+|------|------------|-------|
+| MCP protocol complexity | Start with stdio transport, add HTTP later | 8 |
+| Git hook performance | Add timeout and async options | 9 |
+| Model selection accuracy | Start conservative, tune based on feedback | 10 |
+| Configuration conflicts | Clear precedence rules (project > global) | 8-9 |
+
+---
+
+## Definition of Done (v2.0)
+
+v2.0 is complete when:
+
+1. ✓ MCP server exposes Kimi as callable tools
+2. ✓ Git hooks auto-delegate coding tasks
+3. ✓ SKILL.md intelligently selects K2 vs K2.5
+4. ✓ Configuration supports global and per-project setups
+5. ✓ Documentation covers all new features
+6. ✓ install.sh sets up v2.0 components
+7. ✓ All 41 requirements verified
+
+---
+
+*Roadmap created: 2026-02-05*  
+*Next step: `/gsd-plan-phase 8` to begin MCP Bridge implementation*
