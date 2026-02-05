@@ -12,10 +12,13 @@ set -euo pipefail
 
 # -- Constants ----------------------------------------------------------------
 readonly MODEL_SELECTOR_VERSION="1.0.0"
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly LIB_DIR="${SCRIPT_DIR}/lib"
-readonly TASK_CLASSIFIER="${LIB_DIR}/task-classifier.sh"
-readonly MODEL_RULES_FILE="${LIB_DIR}/model-rules.json"
+
+# Define script directory (avoid readonly to prevent conflicts with sourced scripts)
+MODEL_SELECTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly MODEL_SELECTOR_LIB_DIR="${MODEL_SELECTOR_DIR}/lib"
+readonly TASK_CLASSIFIER="${MODEL_SELECTOR_LIB_DIR}/task-classifier.sh"
+
+# Note: MODEL_RULES_FILE will be defined by task-classifier.sh when sourced
 
 # Exit codes
 readonly EXIT_SUCCESS=0
@@ -382,9 +385,9 @@ parse_arguments() {
 # main()
 # Main entry point for CLI execution
 main() {
-    # Check if model-rules.json exists
-    if [[ ! -f "$MODEL_RULES_FILE" ]]; then
-        log_error "Model rules file not found: $MODEL_RULES_FILE"
+    # Check if model-rules.json exists (defined by task-classifier.sh)
+    if [[ ! -f "${MODEL_RULES_FILE:-}" ]]; then
+        log_error "Model rules file not found: ${MODEL_RULES_FILE:-"(not defined)"}"
         exit $EXIT_CONFIG_NOT_FOUND
     fi
     
