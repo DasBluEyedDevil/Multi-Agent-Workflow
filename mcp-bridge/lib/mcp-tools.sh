@@ -79,6 +79,11 @@ mcp_get_tool_definitions() {
                             type: "string",
                             description: "Analysis role (e.g., security, performance)",
                             default: "general"
+                        },
+                        auto_model: {
+                            type: "boolean",
+                            description: "Enable automatic model selection (K2 for routine, K2.5 for creative)",
+                            default: false
                         }
                     },
                     required: ["prompt"]
@@ -103,6 +108,11 @@ mcp_get_tool_definitions() {
                         constraints: {
                             type: "string",
                             description: "Optional implementation constraints"
+                        },
+                        auto_model: {
+                            type: "boolean",
+                            description: "Enable automatic model selection (K2 for routine, K2.5 for creative)",
+                            default: false
                         }
                     },
                     required: ["prompt"]
@@ -128,6 +138,11 @@ mcp_get_tool_definitions() {
                             type: "boolean",
                             description: "Enable safety checks",
                             default: true
+                        },
+                        auto_model: {
+                            type: "boolean",
+                            description: "Enable automatic model selection (K2 for routine, K2.5 for creative)",
+                            default: false
                         }
                     },
                     required: ["prompt"]
@@ -152,6 +167,11 @@ mcp_get_tool_definitions() {
                         requirements: {
                             type: "string",
                             description: "Requirements to verify against"
+                        },
+                        auto_model: {
+                            type: "boolean",
+                            description: "Enable automatic model selection (K2 for routine, K2.5 for creative)",
+                            default: false
                         }
                     },
                     required: ["prompt"]
