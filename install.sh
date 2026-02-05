@@ -6,9 +6,12 @@
 set -euo pipefail
 
 # -- Constants ---------------------------------------------------------------
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="2.0.0"
 MIN_KIMI_VERSION="1.7.0"
+MIN_BASH_VERSION="4.0"
 DEFAULT_TARGET="$HOME/.claude"
+DRY_RUN=false
+WITH_HOOKS=false
 
 # Colors
 RED='\033[0;31m'
@@ -26,10 +29,12 @@ TARGET_DIR="$DEFAULT_TARGET"
 INSTALL_MODE="global"
 FORCE_MODE=false
 SHOW_HELP=false
+DRY_RUN=false
+WITH_HOOKS=false
 
 usage() {
     cat <<'USAGE_EOF'
-Multi-Agent-Workflow Installer v1.0.0
+Multi-Agent-Workflow Installer v2.0.0
 
 Usage: install.sh [OPTIONS]
 
@@ -38,7 +43,14 @@ Options:
   -l, --local         Install to current directory .claude/
   -t, --target PATH   Install to custom directory
   -f, --force         Overwrite without backup prompt
+      --dry-run       Show what would be installed without making changes
+      --with-hooks    Auto-install git hooks without prompting
   -h, --help          Show this help
+
+v2.0 Features:
+  • MCP Server - Expose Kimi as callable MCP tools
+  • Git Hooks - Auto-delegate coding tasks via git hooks
+  • Model Selection - Automatic K2 vs K2.5 selection
 
 Examples:
   install.sh                    # Interactive mode (default)
@@ -46,6 +58,8 @@ Examples:
   install.sh --local            # Install to ./.claude/
   install.sh --target ~/custom  # Install to ~/custom/
   install.sh --global --force   # Global install, skip backup prompt
+  install.sh --dry-run          # Preview installation
+  install.sh --with-hooks       # Auto-install hooks
 USAGE_EOF
     exit 0
 }
@@ -68,6 +82,12 @@ while [[ $# -gt 0 ]]; do
             shift 2 ;;
         -f|--force)
             FORCE_MODE=true
+            shift ;;
+        --dry-run)
+            DRY_RUN=true
+            shift ;;
+        --with-hooks)
+            WITH_HOOKS=true
             shift ;;
         -h|--help)
             usage ;;
@@ -179,11 +199,440 @@ log_warn() {
     echo -e "${YELLOW}$1${NC}"
 }
 
+log_error() {
+    echo -e "${RED}$1${NC}"
+}
+
+# -- v2.0 Component Functions ------------------------------------------------
+
+# Check jq dependency - required for MCP server
+check_jq() {
+    log_info "Checking jq dependency..."
+    
+    if command -v jq &> /dev/null; then
+        log_success "  ✓ jq $(jq --version) found"
+        return 0
+    fi
+    
+    log_error "  ✗ jq not found (required for MCP server)"
+    echo ""
+    log_warn "jq is required for v2.0 MCP functionality. Install instructions:"
+    echo ""
+    
+    local os
+    os=$(detect_os)
+    case "$os" in
+        macos)
+            echo "  macOS:"
+            echo "    brew install jq"
+            ;;
+        linux)
+            echo "  Ubuntu/Debian:"
+            echo "    sudo apt-get install jq"
+            echo ""
+            echo "  RHEL/CentOS/Fedora:"
+            echo "    sudo yum install jq"
+            echo "    # or: sudo dnf install jq"
+            ;;
+        windows)
+            echo "  Windows (Git Bash):"
+            echo "    choco install jq"
+            echo "    # or download from: https://stedolan.github.io/jq/download/"
+            ;;
+        *)
+            echo "  See: https://stedolan.github.io/jq/download/"
+            ;;
+    esac
+    
+    echo ""
+    return 1
+}
+
+# Check bash version
+check_bash_version() {
+    log_info "Checking bash version..."
+    local bash_version="${BASH_VERSION%%.*}"
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+        log_error "  ✗ Bash ${BASH_VERSION} is below minimum $MIN_BASH_VERSION"
+        return 1
+    fi
+    log_success "  ✓ Bash ${BASH_VERSION}"
+    return 0
+}
+
+# Backup existing config file
+backup_config() {
+    local config_file="$1"
+    if [[ -f "$config_file" ]]; then
+        local backup_file="${config_file}.backup.$(date +%Y%m%d%H%M%S)"
+        if [[ "$DRY_RUN" == "false" ]]; then
+            cp "$config_file" "$backup_file"
+            log_warn "  Backed up: $backup_file"
+        else
+            echo "  [DRY-RUN] Would backup: $config_file → $backup_file"
+        fi
+    fi
+}
+
+# Install MCP server and related tools
+install_mcp_server() {
+    log_info "Installing MCP server..."
+    
+    # Create directories
+    if [[ "$DRY_RUN" == "false" ]]; then
+        mkdir -p "$HOME/.local/bin"
+        mkdir -p "$HOME/.config/kimi-mcp"
+    else
+        echo "  [DRY-RUN] Would create: ~/.local/bin and ~/.config/kimi-mcp"
+    fi
+    
+    # Copy MCP server binary
+    if [[ -f "$SCRIPT_DIR/mcp-bridge/bin/kimi-mcp-server" ]]; then
+        if [[ "$DRY_RUN" == "false" ]]; then
+            cp "$SCRIPT_DIR/mcp-bridge/bin/kimi-mcp-server" "$HOME/.local/bin/"
+            chmod +x "$HOME/.local/bin/kimi-mcp-server"
+            log_success "  ✓ Installed: kimi-mcp-server"
+        else
+            echo "  [DRY-RUN] Would install: kimi-mcp-server → ~/.local/bin/"
+        fi
+    else
+        log_warn "  ⚠ MCP server binary not found at $SCRIPT_DIR/mcp-bridge/bin/kimi-mcp-server"
+    fi
+    
+    # Copy kimi-mcp CLI wrapper
+    if [[ -f "$SCRIPT_DIR/bin/kimi-mcp" ]]; then
+        if [[ "$DRY_RUN" == "false" ]]; then
+            cp "$SCRIPT_DIR/bin/kimi-mcp" "$HOME/.local/bin/"
+            chmod +x "$HOME/.local/bin/kimi-mcp"
+            log_success "  ✓ Installed: kimi-mcp CLI"
+        else
+            echo "  [DRY-RUN] Would install: kimi-mcp → ~/.local/bin/"
+        fi
+    fi
+    
+    # Copy kimi-mcp-setup helper
+    if [[ -f "$SCRIPT_DIR/bin/kimi-mcp-setup" ]]; then
+        if [[ "$DRY_RUN" == "false" ]]; then
+            cp "$SCRIPT_DIR/bin/kimi-mcp-setup" "$HOME/.local/bin/"
+            chmod +x "$HOME/.local/bin/kimi-mcp-setup"
+            log_success "  ✓ Installed: kimi-mcp-setup helper"
+        else
+            echo "  [DRY-RUN] Would install: kimi-mcp-setup → ~/.local/bin/"
+        fi
+    fi
+    
+    # Create default config if not exists
+    local config_file="$HOME/.config/kimi-mcp/config.json"
+    if [[ ! -f "$config_file" ]]; then
+        if [[ "$DRY_RUN" == "false" ]]; then
+            mkdir -p "$HOME/.config/kimi-mcp"
+            cat > "$config_file" <<'CONFIG_EOF'
+{
+  "model": "k2",
+  "timeout": 300,
+  "roles": {
+    "analyze": "reviewer",
+    "implement": "implementer",
+    "refactor": "refactorer",
+    "verify": "reviewer"
+  }
+}
+CONFIG_EOF
+            log_success "  ✓ Created default config: ~/.config/kimi-mcp/config.json"
+        else
+            echo "  [DRY-RUN] Would create: ~/.config/kimi-mcp/config.json"
+        fi
+    else
+        log_warn "  ⚠ Existing config preserved: ~/.config/kimi-mcp/config.json"
+    fi
+}
+
+# Install model selection tools
+install_model_tools() {
+    log_info "Installing model selection tools..."
+    
+    # Create directories
+    if [[ "$DRY_RUN" == "false" ]]; then
+        mkdir -p "$HOME/.local/bin"
+        mkdir -p "$HOME/.config/kimi"
+    else
+        echo "  [DRY-RUN] Would create: ~/.local/bin and ~/.config/kimi"
+    fi
+    
+    # Copy model selector if exists
+    if [[ -f "$SCRIPT_DIR/bin/kimi-model-selector" ]]; then
+        if [[ "$DRY_RUN" == "false" ]]; then
+            cp "$SCRIPT_DIR/bin/kimi-model-selector" "$HOME/.local/bin/"
+            chmod +x "$HOME/.local/bin/kimi-model-selector"
+            log_success "  ✓ Installed: kimi-model-selector"
+        else
+            echo "  [DRY-RUN] Would install: kimi-model-selector → ~/.local/bin/"
+        fi
+    fi
+    
+    # Copy cost estimator if exists
+    if [[ -f "$SCRIPT_DIR/bin/kimi-cost-estimator" ]]; then
+        if [[ "$DRY_RUN" == "false" ]]; then
+            cp "$SCRIPT_DIR/bin/kimi-cost-estimator" "$HOME/.local/bin/"
+            chmod +x "$HOME/.local/bin/kimi-cost-estimator"
+            log_success "  ✓ Installed: kimi-cost-estimator"
+        else
+            echo "  [DRY-RUN] Would install: kimi-cost-estimator → ~/.local/bin/"
+        fi
+    fi
+    
+    # Create default model rules if not exists
+    local rules_file="$HOME/.config/kimi/model-rules.json"
+    if [[ ! -f "$rules_file" ]]; then
+        if [[ "$DRY_RUN" == "false" ]]; then
+            mkdir -p "$HOME/.config/kimi"
+            cat > "$rules_file" <<'RULES_EOF'
+{
+  "version": "1.0",
+  "models": {
+    "k2": {
+      "description": "Fast, efficient model for routine tasks",
+      "cost_multiplier": 1.0,
+      "confidence_threshold": 0.75
+    },
+    "k2.5": {
+      "description": "Stronger model for creative/UI tasks",
+      "cost_multiplier": 1.5,
+      "confidence_threshold": 0.75
+    }
+  },
+  "file_rules": {
+    "backend": [".py", ".js", ".go", ".rs", ".java", ".rb", ".php"],
+    "frontend": [".tsx", ".jsx", ".css", ".scss", ".vue", ".svelte"],
+    "test": [".test.", ".spec."],
+    "component": ["component", "Component"]
+  },
+  "task_rules": {
+    "routine": ["refactor", "test", "fix", "lint", "format"],
+    "creative": ["feature", "ui", "design", "implement"]
+  }
+}
+RULES_EOF
+            log_success "  ✓ Created default model rules: ~/.config/kimi/model-rules.json"
+        else
+            echo "  [DRY-RUN] Would create: ~/.config/kimi/model-rules.json"
+        fi
+    else
+        log_warn "  ⚠ Existing model rules preserved: ~/.config/kimi/model-rules.json"
+    fi
+}
+
+# Interactive hooks installation prompt
+prompt_hooks_install() {
+    # Skip prompt if --with-hooks was specified
+    if [[ "$WITH_HOOKS" == "true" ]]; then
+        return 0
+    fi
+    
+    # Skip if not in a git repository
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        log_warn "Not in a git repository - skipping hooks installation prompt"
+        return 1
+    fi
+    
+    echo ""
+    log_info "Git hooks can auto-delegate coding tasks to Kimi."
+    read -p "Install git hooks for auto-delegation? [Y/n] " -n 1 -r
+    echo ""
+    
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        return 1
+    fi
+    
+    return 0
+}
+
+# Install git hooks
+install_hooks_interactive() {
+    if ! prompt_hooks_install; then
+        log_info "Skipping hooks installation"
+        return 0
+    fi
+    
+    log_info "Installing git hooks..."
+    
+    # Create .kimi directory for project config
+    if [[ "$DRY_RUN" == "false" ]]; then
+        mkdir -p ".kimi"
+    else
+        echo "  [DRY-RUN] Would create: .kimi/ directory"
+    fi
+    
+    # Create project hooks config if not exists
+    local project_config=".kimi/hooks.json"
+    if [[ ! -f "$project_config" ]]; then
+        if [[ "$DRY_RUN" == "false" ]]; then
+            cat > "$project_config" <<'HOOKS_CONFIG_EOF'
+{
+  "enabled": true,
+  "hooks": {
+    "pre-commit": {
+      "enabled": true,
+      "auto_fix": true,
+      "max_files": 10
+    },
+    "post-checkout": {
+      "enabled": true,
+      "analyze_changes": true,
+      "max_files": 20
+    },
+    "pre-push": {
+      "enabled": true,
+      "run_tests": false,
+      "auto_fix": false
+    }
+  }
+}
+HOOKS_CONFIG_EOF
+            log_success "  ✓ Created project hooks config: .kimi/hooks.json"
+        else
+            echo "  [DRY-RUN] Would create: .kimi/hooks.json"
+        fi
+    else
+        log_warn "  ⚠ Existing project config preserved: .kimi/hooks.json"
+    fi
+    
+    # Install hooks to .git/hooks/
+    local git_hooks_dir
+    git_hooks_dir=$(git rev-parse --git-path hooks 2>/dev/null)
+    
+    if [[ -n "$git_hooks_dir" && -d "$git_hooks_dir" ]]; then
+        local hooks_source="$SCRIPT_DIR/hooks/hooks"
+        
+        for hook in pre-commit post-checkout pre-push; do
+            if [[ -f "$hooks_source/$hook" ]]; then
+                if [[ "$DRY_RUN" == "false" ]]; then
+                    # Backup existing hook
+                    if [[ -e "$git_hooks_dir/$hook" && ! -L "$git_hooks_dir/$hook" ]]; then
+                        backup_config "$git_hooks_dir/$hook"
+                    fi
+                    
+                    # Create symlink
+                    ln -sf "$hooks_source/$hook" "$git_hooks_dir/$hook"
+                    chmod +x "$hooks_source/$hook"
+                    log_success "  ✓ Installed: $hook hook"
+                else
+                    echo "  [DRY-RUN] Would install: $hook hook → $git_hooks_dir/$hook"
+                fi
+            fi
+        done
+    fi
+    
+    log_success "Hooks installed! Use KIMI_HOOKS_SKIP=1 to bypass when needed."
+}
+
+# Verify PATH contains ~/.local/bin
+verify_path() {
+    log_info "Checking PATH configuration..."
+    
+    if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
+        log_success "  ✓ ~/.local/bin is in PATH"
+        return 0
+    else
+        log_warn "  ⚠ ~/.local/bin is NOT in PATH"
+        echo ""
+        echo "  Add this to your shell profile (~/.bashrc, ~/.zshrc, etc.):"
+        echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
+        echo ""
+        return 1
+    fi
+}
+
+# Show post-installation summary
+show_summary() {
+    echo ""
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║   Installation Complete!                               ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    log_info "Installed Components:"
+    echo ""
+    
+    # Check what's installed
+    local has_mcp=false
+    local has_hooks=false
+    local has_model=false
+    
+    [[ -f "$HOME/.local/bin/kimi-mcp" ]] && has_mcp=true
+    [[ -f ".kimi/hooks.json" ]] && has_hooks=true
+    [[ -f "$HOME/.local/bin/kimi-model-selector" ]] && has_model=true
+    
+    if [[ "$has_mcp" == "true" ]]; then
+        echo -e "  ${GREEN}✓${NC} MCP Server"
+        echo "      Command: kimi-mcp start"
+        echo "      Config:   ~/.config/kimi-mcp/config.json"
+        echo ""
+    fi
+    
+    if [[ "$has_hooks" == "true" ]]; then
+        echo -e "  ${GREEN}✓${NC} Git Hooks"
+        echo "      Install:  kimi-hooks install --local"
+        echo "      Config:   .kimi/hooks.json"
+        echo ""
+    fi
+    
+    if [[ "$has_model" == "true" ]]; then
+        echo -e "  ${GREEN}✓${NC} Model Selection Tools"
+        echo "      Select:   kimi-model-selector"
+        echo "      Estimate: kimi-cost-estimator"
+        echo "      Rules:    ~/.config/kimi/model-rules.json"
+        echo ""
+    fi
+    
+    echo -e "  ${GREEN}✓${NC} Kimi Delegation Wrapper"
+    echo "      Script:   $TARGET_DIR/skills/kimi.agent.wrapper.sh"
+    echo ""
+    
+    log_info "Next Steps:"
+    echo ""
+    
+    if [[ "$has_mcp" == "true" ]]; then
+        echo "  Test MCP server:"
+        echo "    echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\"}' | kimi-mcp start"
+        echo ""
+        echo "  Register with Kimi CLI:"
+        echo "    kimi-mcp-setup install"
+        echo ""
+    fi
+    
+    if [[ "$has_hooks" == "true" ]]; then
+        echo "  Configure hooks:"
+        echo "    Edit .kimi/hooks.json to customize behavior"
+        echo ""
+    fi
+    
+    echo "  Read documentation:"
+    echo "    cat .claude/commands/kimi/kimi-mcp.md"
+    echo "    cat .claude/commands/kimi/kimi-hooks.md"
+    echo ""
+    
+    # PATH warning if needed
+    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+        log_warn "⚠ Remember to add ~/.local/bin to your PATH!"
+        echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
+        echo ""
+    fi
+    
+    log_success "Happy delegating! 🚀"
+}
+
 echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║   Multi-Agent-Workflow Installer v${SCRIPT_VERSION}               ║${NC}"
 echo -e "${GREEN}║   Gemini Research + Kimi Delegation for Claude Code    ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
+
+# Handle dry-run mode early
+if [[ "$DRY_RUN" == "true" ]]; then
+    echo -e "${YELLOW}⚡ DRY-RUN MODE: Showing what would be installed${NC}"
+    echo ""
+fi
 
 # ═══════════════════════════════════════════════════════════
 # Prerequisite Checks
@@ -194,17 +643,17 @@ echo -e "${BLUE}Checking prerequisites...${NC}"
 MISSING_DEPS=()
 KIMI_BIN=""
 
-# Check for jq (needed for gemini integration)
-if ! command -v jq &> /dev/null; then
+# Check bash version (v2.0 requires bash 4.0+)
+check_bash_version || MISSING_DEPS+=("bash")
+
+# Check for jq (required for v2.0 MCP server)
+if ! check_jq; then
     MISSING_DEPS+=("jq")
-    echo -e "  ${YELLOW}⚠${NC} jq not found (needed for Gemini integration)"
-else
-    echo -e "  ${GREEN}✓${NC} jq $(jq --version)"
 fi
 
 # Check for gemini CLI (optional - for Gemini integration)
 if ! command -v gemini &> /dev/null; then
-    echo -e "  ${YELLOW}⚠${NC} gemini CLI not found (needed for Gemini integration)"
+    echo -e "  ${YELLOW}⚠${NC} gemini CLI not found (optional, for Gemini integration)"
 else
     echo -e "  ${GREEN}✓${NC} gemini CLI found"
 fi
@@ -220,7 +669,7 @@ fi
 
 # Check for git (optional but recommended)
 if ! command -v git &> /dev/null; then
-    echo -e "  ${YELLOW}⚠${NC} git not found (optional, needed for --diff feature)"
+    echo -e "  ${YELLOW}⚠${NC} git not found (optional, needed for hooks and --diff feature)"
 else
     echo -e "  ${GREEN}✓${NC} git $(git --version | cut -d' ' -f3)"
 fi
@@ -233,11 +682,17 @@ if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
 
     for dep in "${MISSING_DEPS[@]}"; do
         case "$dep" in
+            bash)
+                echo -e "  ${CYAN}bash:${NC}"
+                echo "    v2.0 requires Bash 4.0 or higher"
+                echo "    Please upgrade your bash installation"
+                ;;
             jq)
                 echo -e "  ${CYAN}jq:${NC}"
-                echo "    Windows (Git Bash): Download from https://stedolan.github.io/jq/"
                 echo "    macOS: brew install jq"
-                echo "    Linux: sudo apt install jq"
+                echo "    Ubuntu/Debian: sudo apt-get install jq"
+                echo "    RHEL/CentOS: sudo yum install jq"
+                echo "    Windows: choco install jq"
                 ;;
             kimi-cli)
                 echo -e "  ${CYAN}kimi-cli:${NC}"
@@ -627,11 +1082,20 @@ install_hooks() {
     log_info "  Run: kimi-hooks install --local (or --global)"
 }
 
-# Install MCP Bridge
-install_mcp_bridge
+# Install v2.0 Components
 
-# Install Hooks System
+# MCP Server (v2.0)
+install_mcp_server
+
+# Model Selection Tools (v2.0)
+install_model_tools
+
+# Hooks System (v2.0)
+# Install hooks files to target directory
 install_hooks
+
+# Interactive hooks installation (if --with-hooks or user approves)
+install_hooks_interactive
 
 # -- Shared Components --
 
@@ -697,7 +1161,16 @@ COMPONENT_COUNT=0
 [ -f "$TARGET_DIR/skills/gemini.agent.wrapper.sh" ] && ((COMPONENT_COUNT++))
 [ -d "$TARGET_DIR/.kimi/templates" ] && COMPONENT_COUNT=$((COMPONENT_COUNT + $(ls -1 "$TARGET_DIR/.kimi/templates/"*.md 2>/dev/null | wc -l)))
 [ -d "$TARGET_DIR/.gemini/roles" ] && COMPONENT_COUNT=$((COMPONENT_COUNT + $(ls -1 "$TARGET_DIR/.gemini/roles/"*.md 2>/dev/null | wc -l)))
+[ -f "$HOME/.local/bin/kimi-mcp" ] && ((COMPONENT_COUNT++))
+[ -f ".kimi/hooks.json" ] && ((COMPONENT_COUNT++))
 
-echo -e "${GREEN}Installed ${COMPONENT_COUNT}+ components to ${TARGET_DIR}${NC}"
-echo ""
-echo -e "${GREEN}Done!${NC}"
+if [[ "$DRY_RUN" == "false" ]]; then
+    echo -e "${GREEN}Installed ${COMPONENT_COUNT}+ components to ${TARGET_DIR}${NC}"
+    echo ""
+    
+    # Show post-installation summary
+    verify_path
+    show_summary
+else
+    echo -e "${YELLOW}Dry-run complete. No changes were made.${NC}"
+fi

@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 
 ## Current Position
 
-Phase: 10 of 11 (Enhanced SKILL.md)
-Plan: 4 of 4 in current phase
-Status: Phase complete
-Last activity: 2026-02-05 — Completed 10-04-PLAN.md
+Phase: 11 of 11 (Integration & Distribution)
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-02-05 — Completed 11-02-PLAN.md
 
-Progress: [██████████████████░░░░░░░░░░░░░░░░░░░░░░] 45%
+Progress: [███████████████████░░░░░░░░░░░░░░░░░░░░░] 47%
 
 ## Milestones
 
@@ -97,6 +97,13 @@ Key decisions carried forward:
 | 10-04 | Add Troubleshooting section for common issues | Self-service problem resolution |
 | 10-04 | Document all environment variables and defaults | Complete configuration reference |
 
+**v2.0 Phase 11 decisions:**
+| Phase | Decision | Rationale |
+|-------|----------|-----------|
+| 11-02 | Kept v1.0 commands in quick reference | Backward compatibility for existing users |
+| 11-02 | Structured MCP/Hooks as top-level sections | Highlight v2.0 capabilities prominently |
+| 11-02 | Two-tier documentation approach | Full guide (CLAUDE.md) + concise reference (kimi-section) |
+
 ### Pending Todos
 
 None - v2.0 planning in progress.
@@ -107,17 +114,17 @@ None - v2.0 planning in progress.
 
 ## Session Continuity
 
-Last session: 2026-02-05T18:18:00Z
-Stopped at: Completed 10-04-PLAN.md (Phase 10, Plan 4)
+Last session: 2026-02-05T18:50:01Z
+Stopped at: Completed 11-02-PLAN.md (Phase 11, Plan 2)
 Resume file: None
 
-**Resumption notes:** Phase 10 (Enhanced SKILL.md) **COMPLETE**. All 4 plans done:
-- 10-01: Configuration and Classification ✓ (model-rules.json, task-classifier.sh)
-- 10-02: Model Selection Engine ✓ (kimi-model-selector.sh with confidence scoring)
-- 10-03: Cost Estimation and Integration ✓ (kimi-cost-estimator.sh, enhanced wrapper)
-- 10-04: SKILL.md Documentation ✓ (v2.0 patterns with auto-model, cost estimation, overrides)
+**Resumption notes:** Phase 11 (Integration & Distribution) **IN PROGRESS**. Plan 2 of 4 complete:
+- 11-01: Update install.sh for v2.0 (pending)
+- 11-02: Update CLAUDE.md with v2.0 commands ✓ (CLAUDE.md, kimi-section updated)
+- 11-03: Create slash commands /kimi-mcp, /kimi-hooks (pending)
+- 11-04: Create documentation guides (pending)
 
-Next: Phase 11 or v2.0 completion
+Next: 11-03-PLAN.md or 11-01-PLAN.md
 
 ## Archives
 
