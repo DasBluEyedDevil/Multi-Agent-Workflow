@@ -284,19 +284,58 @@ die_template_not_found() {
 
 usage() {
     cat >&2 <<'USAGE_EOF'
+kimi.agent.wrapper.sh -- Kimi CLI wrapper with role-based agent selection
+
 Usage: kimi.agent.wrapper.sh [OPTIONS] PROMPT
 
-Options:
+Wrapper Options:
   -r, --role ROLE      Agent role (maps to .kimi/agents/ROLE.yaml)
   -m, --model MODEL    Kimi model (default: kimi-for-coding)
   -w, --work-dir PATH  Working directory for Kimi
-  --diff               Include git diff (HEAD vs working tree) in prompt context
   -t, --template TPL   Template to prepend (maps to .kimi/templates/TPL.md)
-  -h, --help           Show this help
+  --diff               Include git diff (HEAD vs working tree) in prompt context
+  --dry-run            Show command without executing
+  --verbose            Show wrapper debug output
+  -h, --help           Show this help and exit
+
+Kimi CLI Options (pass-through):
+  --thinking           Enable thinking mode for deeper reasoning
+  --no-thinking        Disable thinking mode
+  -y, --yes, --yolo    Auto-approve all actions
+  --print              Run in non-interactive print mode
+  (and any other kimi CLI flags)
+
+Environment Variables:
+  KIMI_PATH            Override kimi binary location
 
 Prompt can also be piped via stdin.
 Unknown flags are passed through to kimi CLI.
 USAGE_EOF
+
+    local roles templates
+    roles=$(list_available_roles)
+    templates=$(list_available_templates)
+
+    if [[ -n "$roles" ]]; then
+        echo "" >&2
+        echo "Available roles: $roles" >&2
+    fi
+
+    if [[ -n "$templates" ]]; then
+        echo "" >&2
+        echo "Available templates: $templates" >&2
+    fi
+
+    cat >&2 <<'EXAMPLES_EOF'
+
+Examples:
+  kimi.agent.wrapper.sh -r reviewer "Review this code"
+  kimi.agent.wrapper.sh -r planner -t feature "Plan new feature"
+  echo "prompt" | kimi.agent.wrapper.sh -r reviewer
+  kimi.agent.wrapper.sh --diff -r auditor "Check changes"
+  kimi.agent.wrapper.sh --thinking -r security "Audit this repo"
+EXAMPLES_EOF
+
     exit 0
 }
 
