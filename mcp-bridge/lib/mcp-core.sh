@@ -283,6 +283,84 @@ mcp_log_error() {
     echo "[ERROR] $message" >&2
 }
 
+# ============================================================================
+# Model Selection Helper
+# ============================================================================
+
+# mcp_select_model - Select appropriate model using kimi-model-selector.sh
+#
+# Arguments:
+#   $1 - Task description
+#   $2 - File paths as JSON array string (e.g., '["src/main.py", "src/utils.py"]')
+#
+# Output:
+#   "k2" or "k2.5" - The selected model (falls back to "k2" on error)
+#
+# Example:
+#   model=$(mcp_select_model "refactor python code" '["src/main.py"]')
+#   # Returns: "k2" or "k2.5"
+mcp_select_model() {
+    local task="${1:-}"
+    local files="${2:-[]}"
+
+    # Search paths for model selector (in order of preference)
+    local selector_paths=(
+        "${MCP_ROOT:-.}/../skills/kimi-model-selector.sh"
+        "${HOME}/.local/share/kimi-workflow/skills/kimi-model-selector.sh"
+        "kimi-model-selector.sh"
+    )
+
+    local selector_path=""
+    for path in "${selector_paths[@]}"; do
+        if [[ -f "$path" && -x "$path" ]]; then
+            selector_path="$path"
+            break
+        fi
+    done
+
+    # If not found by path, try to find in PATH
+    if [[ -z "$selector_path" ]]; then
+        selector_path=$(command -v kimi-model-selector.sh 2>/dev/null || true)
+    fi
+
+    # If still not found, return default
+    if [[ -z "$selector_path" ]]; then
+        mcp_log_error "kimi-model-selector.sh not found, using default model k2"
+        echo "k2"
+        return 0
+    fi
+
+    # Convert JSON array to comma-separated list for the selector
+    local files_csv
+    files_csv=$(echo "$files" | jq -r 'if type == "array" then join(",") else "" end' 2>/dev/null || echo "")
+
+    # Call the model selector
+    local result
+    local exit_code
+
+    result=$("$selector_path" --task "$task" --files "$files_csv" --json 2>/dev/null)
+    exit_code=$?
+
+    if [[ $exit_code -ne 0 || -z "$result" ]]; then
+        mcp_log_error "Model selector failed, using default model k2"
+        echo "k2"
+        return 0
+    fi
+
+    # Parse JSON output to extract model
+    local model
+    model=$(echo "$result" | jq -r '.model // "k2"' 2>/dev/null || echo "k2")
+
+    # Validate model value
+    if [[ "$model" != "k2" && "$model" != "k2.5" ]]; then
+        mcp_log_error "Model selector returned invalid model: $model, using k2"
+        echo "k2"
+        return 0
+    fi
+
+    echo "$model"
+}
+
 # Export all functions for use by other scripts
 export -f mcp_parse_request
 export -f mcp_send_result
@@ -292,6 +370,7 @@ export -f mcp_send_tools_list
 export -f mcp_validate_request
 export -f mcp_log_debug
 export -f mcp_log_error
+export -f mcp_select_model
 
 # Export constants
 export MCP_PROTOCOL_VERSION
