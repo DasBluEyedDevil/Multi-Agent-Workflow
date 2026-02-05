@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 
 ## Current Position
 
-Phase: 11 of 11 (Integration & Distribution)
-Plan: 4 of 4 in current phase
+Phase: 12 of 12 (v2.0 Gap Closure)
+Plan: 1 of 1 in current phase
 Status: Phase complete
-Last activity: 2026-02-05 — Completed 11-04-PLAN.md
+Last activity: 2026-02-05 — Completed 12-01-PLAN.md
 
-Progress: [██████████████████████░░░░░░░░░░░░░░░░░░] 55%
+Progress: [████████████████████████░░░░░░░░░░░░░░░░] 60%
 
 ## Milestones
 
 | Version | Status | Phases | Plans | Shipped |
 |---------|--------|--------|-------|---------|
 | v1.0 MVP | SHIPPED | 1-7 | 15 | 2026-02-05 |
-| v2.0 | In Progress | TBD | TBD | - |
+| v2.0 | Complete | 8-12 | 18 | 2026-02-05 |
 
 See: .planning/MILESTONES.md for details
 
@@ -117,27 +117,37 @@ Key decisions carried forward:
 | 11-04 | Migration path in README.md | Clear guidance for v1.0 users upgrading to v2.0 |
 | 11-04 | Examples by project type in hooks guide | Practical guidance for different tech stacks |
 
+**v2.0 Phase 12 decisions:**
+| Phase | Decision | Rationale |
+|-------|----------|-----------|
+| 12-01 | auto_model parameter defaults to false | Backward compatibility - existing calls unaffected |
+| 12-01 | Multi-path resolution for model selector | Works in both dev and installed contexts |
+| 12-01 | Graceful fallback to k2 on selector errors | Safe default prevents failures |
+| 12-01 | Uniform auto_model support across all 4 tools | Consistent API for tool users |
+
 ### Pending Todos
 
-None - v2.0 planning in progress.
+None - v2.0 milestone complete.
 
 ### Blockers/Concerns
 
-- jq runtime dependency: Must be installed for MCP server operation (documented in 08-01-SUMMARY.md)
+None - v2.0 milestone complete.
 
 ## Session Continuity
 
-Last session: 2026-02-05T18:58:58Z
-Stopped at: Completed 11-04-PLAN.md (Phase 11, Plan 4 - Phase Complete)
+Last session: 2026-02-05T20:16:20Z
+Stopped at: Completed 12-01-PLAN.md (Phase 12, Plan 1 - v2.0 Gap Closure Complete)
 Resume file: None
 
-**Resumption notes:** Phase 11 (Integration & Distribution) **COMPLETE**. All 4 plans complete:
- - 11-01: Update install.sh for v2.0 ✓ (install.sh enhanced with MCP, hooks, model tools)
- - 11-02: Update CLAUDE.md with v2.0 commands ✓ (CLAUDE.md updated with v2.0 patterns)
- - 11-03: Create slash commands /kimi-mcp, /kimi-hooks ✓ (Both command docs created)
- - 11-04: Create documentation guides ✓ (MCP-SETUP.md, HOOKS-GUIDE.md, MODEL-SELECTION.md, README.md updated)
+**Resumption notes:** Phase 12 (v2.0 Gap Closure) **COMPLETE**. Integration gap between Phase 10 (Model Selection) and Phase 8 (MCP Tools) resolved:
+ - 12-01: Wire model selector into MCP tools ✓ (mcp_select_model helper, auto_model parameter, hooks updated)
  
- **Phase 11 complete!** v2.0 documentation and integration artifacts are ready.
+ **Milestone v2.0 COMPLETE!** All 41 requirements satisfied, all integration gaps resolved.
+ - MCP Bridge: Kimi exposed as callable MCP tools ✓
+ - Hooks System: Auto-delegate coding tasks via git hooks ✓
+ - Enhanced SKILL.md: Smart triggers with intelligent K2 vs K2.5 selection ✓
+ - Integration & Distribution: Updated installer and documentation ✓
+ - Gap Closure: Model selection wired into MCP tools ✓
 
 ## Archives
 
