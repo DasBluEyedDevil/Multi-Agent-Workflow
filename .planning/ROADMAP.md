@@ -174,12 +174,13 @@
 **Plans:** 4 plans in 2 waves
 
 **Plan List:**
-- [ ] 11-01-PLAN.md — Update install.sh for v2.0 (MCP, hooks, model selection)
-- [ ] 11-02-PLAN.md — Update CLAUDE.md with v2.0 commands and delegation patterns
-- [ ] 11-03-PLAN.md — Create slash commands (/kimi-mcp, /kimi-hooks)
-- [ ] 11-04-PLAN.md — Create documentation guides (MCP, hooks, model selection) and update README
+- [x] 11-01-PLAN.md — Update install.sh for v2.0 (MCP, hooks, model selection)
+- [x] 11-02-PLAN.md — Update CLAUDE.md with v2.0 commands and delegation patterns
+- [x] 11-03-PLAN.md — Create slash commands (/kimi-mcp, /kimi-hooks)
+- [x] 11-04-PLAN.md — Create documentation guides (MCP, hooks, model selection) and update README
 
-**Status:** Planned (2026-02-05)
+**Status:** ✓ Complete (2026-02-05)
+**Verification:** .planning/phases/11-integration-distribution/11-integration-distribution-VERIFICATION.md
 
 **Wave Structure:**
 | Wave | Plans | Description |
@@ -209,7 +210,7 @@
 | HOOK-01 to HOOK-09 | Phase 9 | Complete |
 | SKILL-01 to SKILL-08 | Phase 10 | Complete |
 | INT-02 | Phase 10 | Complete |
-| INT-01, INT-03 to INT-08 | Phase 11 | Pending |
+| INT-01, INT-03 to INT-08 | Phase 11 | Complete |
 | CONF-01 to CONF-08 | Phase 7* | Complete |
 
 *Note: Configuration system foundation (CONF-01 to CONF-08) assumed from v1.0 baseline or completed as part of Phase 8 initialization.
