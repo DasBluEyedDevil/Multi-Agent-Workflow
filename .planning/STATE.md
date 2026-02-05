@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 9 of 11 (Hooks System) - **IN PROGRESS**
-Plan: 2 of 4 in current phase
-Status: Hook scripts complete
-Last activity: 2026-02-05 — Completed 09-02-PLAN.md
+Plan: 3 of 4 in current phase
+Status: Hook installer complete
+Last activity: 2026-02-05 — Completed 09-03-PLAN.md
 
-Progress: [██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 28%
+Progress: [███████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 30%
 
 ## Milestones
 
@@ -69,6 +69,10 @@ Key decisions carried forward:
 | 9-02 | Pre-commit stashes unstaged changes during auto-fix | Prevents conflicts with unstaged work |
 | 9-02 | Post-checkout max_files limit prevents overload | Large branch switches could analyze hundreds of files |
 | 9-02 | Pre-push still fails after auto-fix | User should review fixes before pushing |
+| 9-03 | Global hooks use ~/.config/git/hooks/ | Git 2.9+ core.hooksPath support |
+| 9-03 | Installation creates symlinks, not copies | Easy updates when hook scripts change |
+| 9-03 | Existing hooks backed up before overwrite | Prevent data loss during installation |
+| 9-03 | kimi-hooks delegates to kimi-hooks-setup | DRY principle for shared operations |
 
 ### Pending Todos
 
@@ -80,15 +84,16 @@ None - v2.0 planning in progress.
 
 ## Session Continuity
 
-Last session: 2026-02-05T16:55:00Z
-Stopped at: Completed 09-02-PLAN.md (Phase 9, Plan 2)
+Last session: 2026-02-05T16:57:47Z
+Stopped at: Completed 09-03-PLAN.md (Phase 9, Plan 3)
 Resume file: None
 
 **Resumption notes:** Phase 9 (Hooks System) in progress. Plans complete:
 - 09-01: Hooks Configuration System ✓ (default.json, hooks-config.sh, test suite)
 - 09-02: Hook Scripts ✓ (hooks-common.sh, pre-commit, post-checkout, pre-push)
+- 09-03: Hook Installer ✓ (hooks/lib/install.sh, bin/kimi-hooks-setup, bin/kimi-hooks)
 
-Next: 09-03-PLAN.md (Installer) - global and per-project hook installation.
+Next: 09-04-PLAN.md (Integration) - integrate hooks into install.sh and documentation.
 
 ## Archives
 
