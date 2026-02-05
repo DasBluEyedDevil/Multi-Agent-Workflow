@@ -56,13 +56,13 @@ Each role is a YAML agent file + markdown system prompt:
 
 ### Distribution
 
-- [ ] **DIST-01**: `install.sh` supports global (~/.claude/), project, and custom target directories
-- [ ] **DIST-02**: `install.sh` checks prerequisites (kimi CLI, jq optional, git optional)
-- [ ] **DIST-03**: `install.sh` detects existing installation and offers backup before upgrade
-- [ ] **DIST-04**: `uninstall.sh` cleanly removes all installed components
-- [ ] **DIST-05**: PowerShell shim (`kimi.ps1`) resolves bash path on Windows and delegates
-- [ ] **DIST-06**: README.md with installation, quick start, role descriptions, architecture overview
-- [ ] **DIST-07**: Version pinning: install script records minimum Kimi CLI version for compatibility
+- [x] **DIST-01**: `install.sh` supports global (~/.claude/), project, and custom target directories
+- [x] **DIST-02**: `install.sh` checks prerequisites (kimi CLI, jq optional, git optional)
+- [x] **DIST-03**: `install.sh` detects existing installation and offers backup before upgrade
+- [x] **DIST-04**: `uninstall.sh` cleanly removes all installed components
+- [x] **DIST-05**: PowerShell shim (`kimi.ps1`) resolves bash path on Windows and delegates
+- [x] **DIST-06**: README.md with installation, quick start, role descriptions, architecture overview
+- [x] **DIST-07**: Version pinning: install script records minimum Kimi CLI version for compatibility
 
 ## v2 Requirements
 
@@ -135,19 +135,19 @@ Each role is a YAML agent file + markdown system prompt:
 | INTG-04 | Phase 5 | Complete |
 | INTG-05 | Phase 5 | Complete |
 | INTG-06 | Phase 5 | Complete |
-| DIST-01 | Phase 6 | Pending |
-| DIST-02 | Phase 6 | Pending |
-| DIST-03 | Phase 6 | Pending |
-| DIST-04 | Phase 6 | Pending |
-| DIST-05 | Phase 6 | Pending |
-| DIST-06 | Phase 6 | Pending |
-| DIST-07 | Phase 6 | Pending |
+| DIST-01 | Phase 6 | Complete |
+| DIST-02 | Phase 6 | Complete |
+| DIST-03 | Phase 6 | Complete |
+| DIST-04 | Phase 6 | Complete |
+| DIST-05 | Phase 6 | Complete |
+| DIST-06 | Phase 6 | Complete |
+| DIST-07 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 39 total
 - Mapped to phases: 39
-- Unmapped: 0
+- Complete: 39 (100%)
 
 ---
 *Requirements defined: 2026-02-04*
-*Last updated: 2026-02-05 after Phase 5 completion*
+*Last updated: 2026-02-05 - PROJECT COMPLETE*

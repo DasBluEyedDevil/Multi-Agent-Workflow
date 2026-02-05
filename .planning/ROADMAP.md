@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Prompt Assembly** - Templates, git diff injection, and context file loading
 - [x] **Phase 4: Developer Experience** - Thinking mode, dry-run, verbose, and help output
 - [x] **Phase 5: Claude Code Integration** - Slash commands, SKILL.md, and CLAUDE.md delegation rules
-- [ ] **Phase 6: Distribution** - Install/uninstall scripts, PowerShell shim, README, and version pinning
+- [x] **Phase 6: Distribution** - Install/uninstall scripts, PowerShell shim, README, and version pinning
 
 ## Phase Details
 
@@ -113,9 +113,9 @@ Plans:
 **Plans**: 3 plans in 2 waves
 
 Plans:
-- [ ] 06-01-PLAN.md -- Create install.sh and uninstall.sh with multi-target support
-- [ ] 06-02-PLAN.md -- Create kimi.ps1 PowerShell shim for Windows
-- [ ] 06-03-PLAN.md -- Create comprehensive README.md documentation
+- [x] 06-01-PLAN.md -- Create install.sh and uninstall.sh with multi-target support
+- [x] 06-02-PLAN.md -- Create kimi.ps1 PowerShell shim for Windows
+- [x] 06-03-PLAN.md -- Create comprehensive README.md documentation
 
 ## Progress
 
@@ -131,4 +131,4 @@ Note: Phase 3 (Prompt Assembly) depends only on Phase 1 and can be planned in pa
 | 3. Prompt Assembly | 3/3 | Complete | 2026-02-05 |
 | 4. Developer Experience | 2/2 | Complete | 2026-02-05 |
 | 5. Claude Code Integration | 2/2 | Complete | 2026-02-05 |
-| 6. Distribution | 0/TBD | Not started | - |
+| 6. Distribution | 3/3 | Complete | 2026-02-05 |
