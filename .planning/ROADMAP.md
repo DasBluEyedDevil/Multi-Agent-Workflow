@@ -25,15 +25,33 @@
 **Requirements:**
 - MCP-01: MCP server implementation
 - MCP-02 to MCP-05: Tool implementations (analyze, implement, refactor, verify)
-- MCP-06: Transport modes (stdio, HTTP/SSE)
+- MCP-06: Transport modes (stdio - HTTP deferred)
 - MCP-07: Configuration per tool
 - MCP-08: Error handling
 - CONF-09: CLI command to start MCP server
 
+**Plans:** 5 plans in 5 waves
+
+**Plan List:**
+- [ ] 08-01-PLAN.md — MCP Protocol Foundation (JSON-RPC, error codes)
+- [ ] 08-02-PLAN.md — Configuration Management (config file, env vars)
+- [ ] 08-03-PLAN.md — Tool Handlers (4 tools, file reading)
+- [ ] 08-04-PLAN.md — Main Server Executable (message loop, lifecycle)
+- [ ] 08-05-PLAN.md — CLI Integration (kimi-mcp command, install)
+
+**Wave Structure:**
+| Wave | Plans | Description |
+|------|-------|-------------|
+| 1 | 08-01 | Core protocol (independent) |
+| 2 | 08-02 | Configuration (independent) |
+| 3 | 08-03 | Tool handlers (needs 01, 02) |
+| 4 | 08-04 | Server executable (needs 01-03) |
+| 5 | 08-05 | CLI integration (needs 04) |
+
 **Success Criteria:**
 1. MCP server starts and responds to tool calls
 2. Each tool (analyze, implement, refactor, verify) works correctly
-3. Both stdio and HTTP transports function
+3. stdio transport functions (HTTP deferred to future)
 4. Configuration affects tool behavior as expected
 5. Errors return meaningful MCP error codes
 
