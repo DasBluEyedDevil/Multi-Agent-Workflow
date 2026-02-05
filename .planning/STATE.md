@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 8 of 11 (MCP Bridge)
-Plan: 1 of 5 in current phase
+Plan: 2 of 5 in current phase
 Status: In progress
-Last activity: 2026-02-05 — Completed 08-01-PLAN.md
+Last activity: 2026-02-05 — Completed 08-02-PLAN.md
 
-Progress: [█░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 2.5%
+Progress: [██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 5.0%
 
 ## Milestones
 
@@ -42,6 +42,9 @@ Key decisions carried forward:
 | 8-01 | Pure Bash MCP implementation (no SDK deps) | Minimize dependencies for CLI integration |
 | 8-01 | jq required for all JSON operations | Prevent injection, ensure spec compliance |
 | 8-01 | Protocol version 2025-11-25 | Current MCP specification |
+| 8-02 | Configuration precedence: env > user config > defaults | Flexible deployment and local customization |
+| 8-02 | Model validation with fallback to k2 | Prevent invalid model selections |
+| 8-02 | 4 built-in analysis roles (general, security, performance, refactor) | Support different analysis contexts |
 
 ### Pending Todos
 
@@ -53,11 +56,11 @@ None - v2.0 planning in progress.
 
 ## Session Continuity
 
-Last session: 2026-02-05T14:30:00Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-02-05T16:00:33Z
+Stopped at: Completed 08-02-PLAN.md
 Resume file: None
 
-**Resumption notes:** Phase 8-01 complete. Protocol foundation ready. Next: 08-02 Configuration Management.
+**Resumption notes:** Phase 8-02 complete. Configuration management ready. Next: 08-03 Tool Handlers.
 
 ## Archives
 
