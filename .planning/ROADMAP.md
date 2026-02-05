@@ -126,6 +126,24 @@
 - SKILL-08: Override mechanism
 - INT-02: Update SKILL.md with v2.0 patterns
 
+**Plans:** 4 plans in 4 waves
+
+**Plan List:**
+- [ ] 10-01-PLAN.md — Configuration and Classification (model-rules.json, task-classifier.sh)
+- [ ] 10-02-PLAN.md — Model Selection Engine (kimi-model-selector.sh with confidence scoring)
+- [ ] 10-03-PLAN.md — Cost Estimation and Wrapper Integration (kimi-cost-estimator.sh, enhanced wrapper)
+- [ ] 10-04-PLAN.md — Documentation Update (SKILL.md with v2.0 patterns)
+
+**Status:** Planned (2026-02-05)
+
+**Wave Structure:**
+| Wave | Plans | Description |
+|------|-------|-------------|
+| 1 | 10-01 | Configuration and classification (independent) |
+| 2 | 10-02 | Model selection engine (needs 10-01) |
+| 3 | 10-03 | Cost estimation and integration (needs 10-01, 10-02) |
+| 4 | 10-04 | Documentation (needs all above) |
+
 **Success Criteria:**
 1. Routine tasks (refactoring, tests) use K2 automatically
 2. Creative/UI tasks use K2.5 automatically
