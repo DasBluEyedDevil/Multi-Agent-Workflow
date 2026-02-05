@@ -92,11 +92,11 @@ Plans:
   1. User can type `/kimi-analyze`, `/kimi-audit`, `/kimi-trace`, or `/kimi-verify` in Claude Code and Kimi is invoked with the correct role/template
   2. A single SKILL.md (under 3,000 characters) teaches Claude when and how to invoke Kimi for research and delegation tasks
   3. A CLAUDE.md section template provides users with delegation rules (when to use Kimi vs handle directly)
-**Plans**: TBD
+**Plans**: 2 plans in 1 wave (parallel)
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
+- [ ] 05-01-PLAN.md -- Create 4 slash commands (/kimi-analyze, /kimi-audit, /kimi-trace, /kimi-verify)
+- [ ] 05-02-PLAN.md -- Create SKILL.md (<3000 chars) and CLAUDE.md.kimi-section template
 
 ### Phase 6: Distribution
 **Goal**: Users can install the entire plugin by cloning the repo and running one command, on any platform
