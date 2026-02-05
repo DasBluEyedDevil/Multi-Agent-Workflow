@@ -206,6 +206,30 @@ die_role_not_found() {
         echo "No agent files found in ${work}/.kimi/agents/ or ${SCRIPT_DIR}/../.kimi/agents/" >&2
     fi
     exit "$EXIT_ROLE_NOT_FOUND"
+}
+
+# Load context file from project if present (silent continue if not found)
+load_context_file() {
+    local work_dir="${1:-.}"
+    local context_content=""
+    local context_file=""
+    
+    # Search order: .kimi/context.md first, then KimiContext.md
+    if [[ -f "${work_dir}/.kimi/context.md" ]]; then
+        context_file="${work_dir}/.kimi/context.md"
+    elif [[ -f "${work_dir}/KimiContext.md" ]]; then
+        context_file="${work_dir}/KimiContext.md"
+    else
+        # Silent continue - optional feature
+        return 0
+    fi
+    
+    # Read and output the context file content
+    context_content=$(cat "$context_file")
+    if [[ -n "$context_content" ]]; then
+        printf '## Project Context (from %s)\n\n%s\n' "$(basename "$context_file")" "$context_content"
+    fi
+}
 
 # Two-tier template resolution: project-local first, then global
 resolve_template() {
