@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 9 of 11 (Hooks System) - **IN PROGRESS**
-Plan: 1 of 4 in current phase
-Status: Configuration system complete
-Last activity: 2026-02-05 — Completed 09-01-PLAN.md
+Plan: 2 of 4 in current phase
+Status: Hook scripts complete
+Last activity: 2026-02-05 — Completed 09-02-PLAN.md
 
-Progress: [█████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 26%
+Progress: [██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 28%
 
 ## Milestones
 
@@ -64,6 +64,11 @@ Key decisions carried forward:
 | 9-01 | Hook-specific settings override global settings | Different hooks have different requirements |
 | 9-01 | Bypass env var configurable (default: KIMI_HOOKS_SKIP) | Consistent naming but allows customization |
 | 9-01 | Boolean validation accepts only "true"/"false" | Strict validation prevents ambiguity |
+| 9-02 | Shared library approach for all hooks | Reduces duplication, ensures consistency |
+| 9-02 | Hooks return 0 on skip (don't block git) | Git operations should not be blocked unnecessarily |
+| 9-02 | Pre-commit stashes unstaged changes during auto-fix | Prevents conflicts with unstaged work |
+| 9-02 | Post-checkout max_files limit prevents overload | Large branch switches could analyze hundreds of files |
+| 9-02 | Pre-push still fails after auto-fix | User should review fixes before pushing |
 
 ### Pending Todos
 
@@ -75,14 +80,15 @@ None - v2.0 planning in progress.
 
 ## Session Continuity
 
-Last session: 2026-02-05T16:48:33Z
-Stopped at: Completed 09-01-PLAN.md (Phase 9, Plan 1)
+Last session: 2026-02-05T16:55:00Z
+Stopped at: Completed 09-02-PLAN.md (Phase 9, Plan 2)
 Resume file: None
 
-**Resumption notes:** Phase 9 (Hooks System) started. Plan 09-01 complete:
+**Resumption notes:** Phase 9 (Hooks System) in progress. Plans complete:
 - 09-01: Hooks Configuration System ✓ (default.json, hooks-config.sh, test suite)
+- 09-02: Hook Scripts ✓ (hooks-common.sh, pre-commit, post-checkout, pre-push)
 
-Next: 09-02-PLAN.md (Hook Scripts) - pre-commit, post-checkout, pre-push implementations.
+Next: 09-03-PLAN.md (Installer) - global and per-project hook installation.
 
 ## Archives
 
