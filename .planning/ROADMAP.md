@@ -33,11 +33,14 @@
 **Plans:** 5 plans in 5 waves
 
 **Plan List:**
-- [ ] 08-01-PLAN.md — MCP Protocol Foundation (JSON-RPC, error codes)
-- [ ] 08-02-PLAN.md — Configuration Management (config file, env vars)
-- [ ] 08-03-PLAN.md — Tool Handlers (4 tools, file reading)
-- [ ] 08-04-PLAN.md — Main Server Executable (message loop, lifecycle)
-- [ ] 08-05-PLAN.md — CLI Integration (kimi-mcp command, install)
+- [x] 08-01-PLAN.md — MCP Protocol Foundation (JSON-RPC, error codes)
+- [x] 08-02-PLAN.md — Configuration Management (config file, env vars)
+- [x] 08-03-PLAN.md — Tool Handlers (4 tools, file reading)
+- [x] 08-04-PLAN.md — Main Server Executable (message loop, lifecycle)
+- [x] 08-05-PLAN.md — CLI Integration (kimi-mcp command, install)
+
+**Status:** ✓ Complete (2026-02-05)
+**Verification:** .planning/phases/08-mcp-bridge/08-mcp-bridge-VERIFICATION.md
 
 **Wave Structure:**
 | Wave | Plans | Description |
@@ -147,8 +150,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MCP-01 to MCP-08 | Phase 8 | Pending |
-| CONF-09 | Phase 8 | Pending |
+| MCP-01 to MCP-08 | Phase 8 | Complete |
+| CONF-09 | Phase 8 | Complete |
 | HOOK-01 to HOOK-09 | Phase 9 | Pending |
 | SKILL-01 to SKILL-08 | Phase 10 | Pending |
 | INT-02 | Phase 10 | Pending |
