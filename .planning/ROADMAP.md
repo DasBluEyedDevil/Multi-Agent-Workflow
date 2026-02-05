@@ -129,12 +129,12 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 07-01-PLAN.md — Add agent MD file copying to install.sh
+- [x] 07-01-PLAN.md — Add agent MD file copying to install.sh
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 Note: Phase 3 (Prompt Assembly) depends only on Phase 1 and can be planned in parallel with Phase 2.
 
@@ -146,4 +146,4 @@ Note: Phase 3 (Prompt Assembly) depends only on Phase 1 and can be planned in pa
 | 4. Developer Experience | 2/2 | Complete | 2026-02-05 |
 | 5. Claude Code Integration | 2/2 | Complete | 2026-02-05 |
 | 6. Distribution | 3/3 | Complete | 2026-02-05 |
-| 7. Fix Installer Agent MD | 0/1 | Pending | — |
+| 7. Fix Installer Agent MD | 1/1 | Complete | 2026-02-05 | |
