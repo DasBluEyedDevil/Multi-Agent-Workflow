@@ -68,7 +68,7 @@ The auditor role evaluates:
 When this command is invoked, execute the kimi wrapper via bash (NOT PowerShell):
 
 ```bash
-bash skills/kimi.agent.wrapper.sh -r auditor -w [directory] "[focus area]"
+bash ~/.claude/skills/kimi.agent.wrapper.sh -r auditor -w [directory] "[focus area]"
 ```
 
 **Required parameters:**

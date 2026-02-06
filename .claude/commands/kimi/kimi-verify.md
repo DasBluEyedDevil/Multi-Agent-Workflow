@@ -79,7 +79,7 @@ bash skills/kimi.agent.wrapper.sh -t verify --diff --thinking "Restructured erro
 When this command is invoked, execute the kimi wrapper via bash (NOT PowerShell):
 
 ```bash
-bash skills/kimi.agent.wrapper.sh -t verify --diff "[change description]"
+bash ~/.claude/skills/kimi.agent.wrapper.sh -t verify --diff "[change description]"
 ```
 
 **Required parameters:**

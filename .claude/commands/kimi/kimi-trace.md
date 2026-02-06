@@ -69,7 +69,7 @@ This allows deeper investigation but means Kimi may make temporary changes.
 When this command is invoked, execute the kimi wrapper via bash (NOT PowerShell):
 
 ```bash
-bash skills/kimi.agent.wrapper.sh -r debugger "[bug description]"
+bash ~/.claude/skills/kimi.agent.wrapper.sh -r debugger "[bug description]"
 ```
 
 **Required parameters:**

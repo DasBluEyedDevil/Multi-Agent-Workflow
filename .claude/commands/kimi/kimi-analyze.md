@@ -53,7 +53,7 @@ Kimi returns structured output with these sections:
 When this command is invoked, execute the kimi wrapper via bash (NOT PowerShell):
 
 ```bash
-bash skills/kimi.agent.wrapper.sh -r reviewer -w [directory] "[question]"
+bash ~/.claude/skills/kimi.agent.wrapper.sh -r reviewer -w [directory] "[question]"
 ```
 
 **Required parameters:**
