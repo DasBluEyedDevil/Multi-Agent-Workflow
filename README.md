@@ -40,8 +40,8 @@ Integrate **Kimi K2.5** as an autonomous R&D subagent for Claude Code. **Claude 
 
 ```bash
 # Clone and install
-git clone https://github.com/username/multi-agent-workflow.git
-cd multi-agent-workflow
+git clone https://github.com/usernamedasblueyeddevil/Climi.git
+cd Climi
 
 # Standard install (v1.0 features)
 ./install.sh
