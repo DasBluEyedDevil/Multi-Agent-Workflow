@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Multi-Agent-Workflow Uninstaller
-# Removes Kimi Delegation integration from Claude Code
+# Climi Uninstaller
+# Removes Kimi CLI integration from Claude Code
 
 set -euo pipefail
 
@@ -22,7 +22,7 @@ SHOW_HELP=false
 # -- Command-line argument parsing -------------------------------------------
 usage() {
     cat <<'USAGE_EOF'
-Multi-Agent-Workflow Uninstaller
+Climi Uninstaller
 
 Usage: uninstall.sh [OPTIONS]
 
@@ -59,7 +59,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo -e "${RED}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${RED}║   Multi-Agent-Workflow Uninstaller                     ║${NC}"
+echo -e "${RED}║   Climi Uninstaller                                    ║${NC}"
 echo -e "${RED}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -73,7 +73,7 @@ if [ -f "$TARGET_DIR/skills/kimi.agent.wrapper.sh" ]; then
 fi
 
 if [ "$FOUND_KIMI" = false ]; then
-    echo -e "${YELLOW}No Multi-Agent-Workflow integration found at:${NC} $TARGET_DIR"
+    echo -e "${YELLOW}No Climi integration found at:${NC} $TARGET_DIR"
     echo ""
     echo "To specify a different location, use: uninstall.sh --target /path/to/dir"
     exit 0
@@ -88,7 +88,7 @@ echo ""
 if [ "$DRY_RUN" = false ]; then
     echo -e "${BLUE}What would you like to uninstall?${NC}"
     echo ""
-    echo "  1) ${RED}Everything${NC} - Remove all Multi-Agent-Workflow components"
+    echo "  1) ${RED}Everything${NC} - Remove all Climi components"
     echo "  2) ${GREEN}Cancel${NC} - Exit without changes"
     echo ""
 

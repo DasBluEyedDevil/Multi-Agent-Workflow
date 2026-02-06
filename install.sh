@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Multi-Agent-Workflow Installer
-# Installs Kimi Delegation integration for Claude Code
+# Climi Installer
+# Installs Kimi CLI integration for Claude Code
 
 set -euo pipefail
 
@@ -34,7 +34,7 @@ WITH_HOOKS=false
 
 usage() {
     cat <<'USAGE_EOF'
-Multi-Agent-Workflow Installer v2.0.0
+Climi Installer v2.0.0
 
 Usage: install.sh [OPTIONS]
 
@@ -585,7 +585,7 @@ show_summary() {
         echo ""
     fi
     
-    echo -e "  ${GREEN}✓${NC} Kimi Delegation Wrapper"
+    echo -e "  ${GREEN}✓${NC} Kimi Wrapper"
     echo "      Script:   $TARGET_DIR/skills/kimi.agent.wrapper.sh"
     echo ""
     
@@ -623,8 +623,8 @@ show_summary() {
 }
 
 echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║   Multi-Agent-Workflow Installer v${SCRIPT_VERSION}               ║${NC}"
-echo -e "${GREEN}║   Gemini Research + Kimi Delegation for Claude Code    ║${NC}"
+echo -e "${GREEN}║   Climi Installer v${SCRIPT_VERSION}                              ║${NC}"
+echo -e "${GREEN}║   Kimi CLI integration for Claude Code                 ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
